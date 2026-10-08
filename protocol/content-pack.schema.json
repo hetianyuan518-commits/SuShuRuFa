@@ -1,0 +1,44 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://susheng.local/schema/content-pack.json",
+  "title": "苏晟输入法内容包",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["serverVersion", "epoch", "since", "items"],
+  "properties": {
+    "serverVersion": { "type": "integer", "minimum": 0 },
+    "epoch": { "type": "integer", "minimum": 1 },
+    "since": { "type": "integer", "minimum": 0 },
+    "items": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/item" }
+    }
+  },
+  "$defs": {
+    "item": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "type", "title", "body", "aliases", "pinyin", "shortcut", "groupId", "groupName", "status", "version", "updatedAt", "deleted"],
+      "properties": {
+        "id": { "type": "string", "minLength": 1 },
+        "type": { "enum": ["script", "tweet", "promo", "lexicon", "image"] },
+        "title": { "type": "string" },
+        "body": { "type": "string" },
+        "aliases": { "type": "array", "items": { "type": "string" } },
+        "pinyin": { "type": "string" },
+        "shortcut": { "type": "string" },
+        "groupId": { "type": "string" },
+        "groupName": { "type": "string" },
+        "groupKind": { "enum": ["company", "department", "creator"] },
+        "assetId": { "type": ["string", "null"] },
+        "mime": { "type": ["string", "null"] },
+        "validFrom": { "type": ["integer", "null"] },
+        "validTo": { "type": ["integer", "null"] },
+        "status": { "enum": ["draft", "published", "unpublished"] },
+        "version": { "type": "integer", "minimum": 1 },
+        "updatedAt": { "type": "integer" },
+        "deleted": { "type": "boolean" }
+      }
+    }
+  }
+}

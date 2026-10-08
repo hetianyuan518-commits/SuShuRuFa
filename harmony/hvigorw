@@ -1,0 +1,4 @@
+#!/bin/sh
+ROOT="$(CDPATH= cd -- "$(dirname "$0")" && pwd)"
+export JAVA_HOME="${JAVA_HOME:-/Applications/Android Studio.app/Contents/jbr/Contents/Home}"
+exec node "$ROOT/node_modules/@ohos/hvigor/bin/hvigor.js" "$@"

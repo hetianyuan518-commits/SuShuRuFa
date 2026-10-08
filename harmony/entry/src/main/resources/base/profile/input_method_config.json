@@ -1,0 +1,11 @@
+{
+  "subtypes": [
+    {
+      "icon": "$media:app_icon",
+      "id": "susheng_pinyin",
+      "label": "$string:app_name",
+      "locale": "zh-CN",
+      "mode": "lower"
+    }
+  ]
+}

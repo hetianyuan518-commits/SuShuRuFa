@@ -1,0 +1,911 @@
+# 手补高频层。词、拼音、词频。现代歌曲原文不收录。
+# 网络用语
+永远的神	yong yuan de shen	460
+绝绝子	jue jue zi	458
+破防	po fang	456
+破大防	po da fang	440
+内卷	nei juan	455
+躺平	tang ping	454
+摆烂	bai lan	448
+社死	she si	446
+社恐	she kong	444
+社牛	she niu	442
+显眼包	xian yan bao	450
+班味	ban wei	448
+松弛感	song chi gan	446
+情绪价值	qing xu jia zhi	444
+多巴胺	duo ba an	442
+特种兵	te zhong bing	430
+遥遥领先	yao yao ling xian	452
+智商税	zhi shang shui	440
+电子榨菜	dian zi zha cai	436
+精神内耗	jing shen nei hao	438
+活人感	huo ren gan	434
+尊嘟假嘟	zun du jia du	432
+泰裤辣	tai ku la	430
+摸鱼	mo yu	448
+打工人	da gong ren	450
+干饭人	gan fan ren	446
+工具人	gong ju ren	440
+尾款人	wei kuan ren	428
+集美	ji mei	426
+宝子	bao zi	436
+家人们	jia ren men	438
+爷青回	ye qing hui	424
+芭比丘	ba bi qiu	420
+栓Q	shuan qiu	418
+yyds	yong yuan de shen	410
+破防了	po fang le	430
+DNA动了	di en ei dong le	400
+笑死	xiao si	448
+笑不活了	xiao bu huo le	436
+无语	wu yu	450
+栓住	shuan zhu	410
+拿捏	na nie	444
+整活	zheng huo	442
+抽象	chou xiang	440
+幽默	you mo	430
+尴尬	gan ga	436
+社畜	she chu	438
+加班	jia ban	432
+下班	xia ban	430
+划水	hua shui	428
+甩锅	shuai guo	426
+背锅	bei guo	424
+吃瓜	chi gua	446
+瓜田	gua tian	400
+前线	qian xian	410
+实名	shi ming	420
+羡慕	xian mu	430
+酸了	suan le	428
+柠檬精	ning meng jing	426
+真香	zhen xiang	444
+打脸	da lian	430
+翻车	fan che	436
+塌房	ta fang	428
+人设	ren she	426
+营业	ying ye	420
+塌房了	ta fang le	422
+顶流	ding liu	424
+塌房现场	ta fang xian chang	400
+热搜	re sou	440
+上热搜	shang re sou	430
+爆了	bao le	428
+封神	feng shen	432
+封神了	feng shen le	426
+天花板	tian hua ban	438
+拉胯	la kua	424
+下头	xia tou	430
+上头	shang tou	436
+破圈	po quan	422
+出圈	chu quan	428
+内娱	nei yu	420
+饭圈	fan quan	422
+哥哥	ge ge	430
+姐姐	jie jie	430
+弟弟	di di	420
+妹妹	mei mei	420
+宝宝	bao bao	440
+亲	qin	400
+宝	bao	410
+绝了	jue le	442
+太绝了	tai jue le	430
+无语子	wu yu zi	424
+笑哭	xiao ku	428
+哭了	ku le	420
+蚌埠住了	beng bu zhu le	422
+DNA	di en ei	400
+栓Q了	shuan qiu le	416
+citywalk	xi ti wo ke	380
+特种兵旅游	te zhong bing lv you	428
+特种兵旅行	te zhong bing lv xing	426
+早C晚A	zao xi wan ei	400
+松弛	song chi	420
+班味很重	ban wei hen zhong	418
+精神状态	jing shen zhuang tai	430
+精神状态良好	jing shen zhuang tai liang hao	410
+已读不回	yi du bu hui	436
+已读	yi du	420
+撤回	che hui	418
+拍一拍	pai yi pai	416
+双击	shuang ji	400
+点赞	dian zan	440
+评论	ping lun	436
+转发	zhuan fa	430
+收藏	shou cang	428
+关注	guan zhu	446
+取关	qu guan	410
+互关	hu guan	408
+粉丝	fen si	430
+博主	bo zhu	428
+网红	wang hong	432
+直播	zhi bo	450
+直播间	zhi bo jian	448
+上链接	shang lian jie	430
+拍了	pai le	420
+下单	xia dan	440
+加购	jia gou	428
+种草	zhong cao	444
+拔草	ba cao	430
+安利	an li	436
+避雷	bi lei	434
+踩雷	cai lei	420
+好用	hao yong	430
+回购	hui gou	426
+平替	ping ti	438
+天花板级别	tian hua ban ji bie	400
+性价比	xing jia bi	440
+智商税警告	zhi shang shui jing gao	400
+电子木鱼	dian zi mu yu	418
+敲电子木鱼	qiao dian zi mu yu	400
+功德	gong de	420
+加功德	jia gong de	410
+冥想	ming xiang	400
+解压	jie ya	422
+治愈	zhi yu	430
+破防瞬间	po fang shun jian	400
+泪目	lei mu	428
+爷青回了	ye qing hui le	410
+回忆杀	hui yi sha	424
+杀疯了	sha feng le	420
+炸裂	zha lie	422
+信息量	xin xi liang	418
+细思极恐	xi si ji kong	416
+万万没想到	wan wan mei xiang dao	430
+惊呆了	jing dai le	420
+我裂开了	wo lie kai le	422
+裂开	lie kai	418
+我直接裂开	wo zhi jie lie kai	416
+无语住了	wu yu zhu le	420
+笑不活	xiao bu huo	424
+哈哈哈	ha ha ha	460
+呵呵	he he	430
+嘿嘿	hei hei	420
+啊这	a zhe	436
+啊对对对	a dui dui dui	428
+对对对	dui dui dui	430
+是的	shi de	440
+确实	que shi	442
+没错	mei cuo	436
+好吧	hao ba	430
+行吧	xing ba	428
+随便	sui bian	420
+无所谓	wu suo wei	432
+都可以	dou ke yi	424
+看你	kan ni	400
+随你	sui ni	400
+# 2025-2026 网络热词。依据《咬文嚼字》年度流行语和汉语盘点网络流行语，不含歌词。
+韧性	ren xing	470
+具身智能	ju shen zhi neng	468
+苏超	su chao	474
+赛博对账	sai bo dui zhang	472
+数字游民	shu zi you min	466
+谷子	gu zi	458
+谷子经济	gu zi jing ji	456
+吃谷	chi gu	448
+谷圈	gu quan	446
+预制菜	yu zhi cai	464
+预制人生	yu zhi ren sheng	460
+预制朋友圈	yu zhi peng you quan	448
+颜值基础	yan zhi ji chu	452
+性格不基础	xing ge bu ji chu	450
+练习基础毅力不基础	lian xi ji chu yi li bu ji chu	454
+从从容容	cong cong rong rong	466
+游刃有余	you ren you yu	462
+匆匆忙忙	cong cong mang mang	460
+连滚带爬	lian gun dai pa	458
+从从容容游刃有余	cong cong rong rong you ren you yu	468
+匆匆忙忙连滚带爬	cong cong mang mang lian gun dai pa	466
+从从容容游刃有余匆匆忙忙连滚带爬	cong cong rong rong you ren you yu cong cong mang mang lian gun dai pa	464
+深度求索	shen du qiu suo	472
+敬自己一杯	jing zi ji yi bei	476
+助我破鼎	zhu wo po ding	470
+千百次练习只为这一刻	qian bai ci lian xi zhi wei zhe yi ke	458
+如何呢又能怎	ru he ne you neng zen	474
+村咖	cun ka	462
+来财	lai cai	460
+浪浪山小妖怪	lang lang shan xiao yao guai	456
+爱你老己	ai ni lao ji	478
+做完你的做你的	zuo wan ni de zuo ni de	468
+低山臭水遇知音	di shan chou shui yu zhi yin	454
+我的身材很曼妙	wo de shen cai hen man miao	464
+不知道我的身材很曼妙	bu zhi dao wo de shen cai hen man miao	466
+我去不早说	wo qu bu zao shuo	450
+不讲不讲	bu jiang bu jiang	448
+我将辞职在家研究	wo jiang ci zhi zai jia yan jiu	452
+真没空陪你闹了	zhen mei kong pei ni nao le	450
+养龙虾	yang long xia	458
+背手负鼠	bei shou fu shu	452
+正式确诊	zheng shi que zhen	448
+邪修	xie xiu	456
+高能量的一天	gao neng liang de yi tian	450
+最棒的小羊	zui bang de xiao yang	446
+丝瓜汤文学	si gua tang wen xue	444
+搭子	da zi	460
+嘴替	zui ti	454
+哈基米	ha ji mi	452
+我嘞个豆	wo lei ge dou	448
+脆皮年轻人	cui pi nian qing ren	446
+孔乙己文学	kong yi ji wen xue	444
+烟火气	yan huo qi	450
+新质生产力	xin zhi sheng chan li	448
+低空经济	di kong jing ji	446
+首发经济	shou fa jing ji	444
+智能体	zhi neng ti	452
+数字人	shu zi ren	450
+智能驾驶	zhi neng jia shi	446
+经济韧性	jing ji ren xing	448
+发展韧性	fa zhan ren xing	446
+城市不城市	cheng shi bu cheng shi	442
+多巴胺穿搭	duo ba an chuan da	444
+# 人工智能词汇和语句。纯中文，供文案、口播、数字人和提示词场景使用。
+人工智能	ren gong zhi neng	478
+生成式人工智能	sheng cheng shi ren gong zhi neng	472
+通用人工智能	tong yong ren gong zhi neng	468
+大模型	da mo xing	476
+大语言模型	da yu yan mo xing	470
+多模态	duo mo tai	466
+多模态大模型	duo mo tai da mo xing	462
+视觉语言模型	shi jue yu yan mo xing	456
+语音大模型	yu yin da mo xing	456
+视频大模型	shi pin da mo xing	456
+提示词	ti shi ci	474
+提示工程	ti shi gong cheng	460
+系统提示词	xi tong ti shi ci	464
+提示词模板	ti shi ci mo ban	458
+角色提示词	jiao se ti shi ci	456
+负面提示词	fu mian ti shi ci	454
+文生图	wen sheng tu	470
+文生视频	wen sheng shi pin	470
+图生视频	tu sheng shi pin	464
+文生文	wen sheng wen	452
+图生图	tu sheng tu	452
+生成式视频	sheng cheng shi shi pin	452
+生成式图片	sheng cheng shi tu pian	450
+知识库	zhi shi ku	466
+向量数据库	xiang liang shu ju ku	448
+语义检索	yu yi jian suo	442
+模型幻觉	mo xing huan jue	464
+微调	wei tiao	460
+预训练	yu xun lian	452
+推理模型	tui li mo xing	458
+思维链	si wei lian	462
+多智能体	duo zhi neng ti	454
+智能体工作流	zhi neng ti gong zuo liu	452
+工具调用	gong ju diao yong	452
+算力	suan li	458
+开源模型	kai yuan mo xing	456
+闭源模型	bi yuan mo xing	454
+上下文窗口	shang xia wen chuang kou	452
+长上下文	chang shang xia wen	450
+检索增强	jian suo zeng qiang	450
+人机协作	ren ji xie zuo	452
+人工智能生成内容	ren gong zhi neng sheng cheng nei rong	460
+人工智能写作	ren gong zhi neng xie zuo	454
+人工智能绘画	ren gong zhi neng hui hua	452
+人工智能搜索	ren gong zhi neng sou suo	450
+人工智能视频	ren gong zhi neng shi pin	452
+人工智能配音	ren gong zhi neng pei yin	450
+虚拟主播	xu ni zhu bo	456
+数字分身	shu zi fen shen	454
+数字人口播	shu zi ren kou bo	456
+人工智能主播	ren gong zhi neng zhu bo	454
+语音克隆	yu yin ke long	462
+语音合成	yu yin he cheng	454
+智能剪辑	zhi neng jian ji	456
+一键成片	yi jian cheng pian	454
+文案生成	wen an sheng cheng	458
+口播生成	kou bo sheng cheng	452
+脚本生成	jiao ben sheng cheng	452
+分镜生成	fen jing sheng cheng	450
+封面生成	feng mian sheng cheng	448
+标题生成	biao ti sheng cheng	448
+智能配音	zhi neng pei yin	456
+自动字幕	zi dong zi mu	450
+聊天机器人	liao tian ji qi ren	450
+智能助手	zhi neng zhu shou	452
+智能客服	zhi neng ke fu	446
+机器学习	ji qi xue xi	448
+深度学习	shen du xue xi	450
+神经网络	shen jing wang luo	446
+注意力机制	zhu yi li ji zhi	444
+世界模型	shi jie mo xing	452
+本地部署	ben di bu shu	454
+私有化部署	si you hua bu shu	450
+端侧模型	duan ce mo xing	446
+模型蒸馏	mo xing zheng liu	444
+数据标注	shu ju biao zhu	446
+合成数据	he cheng shu ju	444
+深度合成	shen du he cheng	446
+长期记忆	chang qi ji yi	446
+词元	ci yuan	440
+核采样	he cai yang	438
+零样本	ling yang ben	436
+少样本	shao yang ben	436
+机器味	ji qi wei	472
+人工智能味	ren gong zhi neng wei	468
+内容安全	nei rong an quan	448
+安全对齐	an quan dui qi	444
+训练数据	xun lian shu ju	446
+参数规模	can shu gui mo	442
+行业大模型	hang ye da mo xing	448
+垂类模型	chui lei mo xing	444
+联网搜索	lian wang sou suo	444
+引用来源	yin yong lai yuan	446
+参考图	can kao tu	448
+角色一致性	jiao se yi zhi xing	450
+画风	hua feng	442
+电影感	dian ying gan	444
+镜头语言	jing tou yu yan	442
+运镜	yun jing	440
+用大模型写一版文案	yong da mo xing xie yi ban wen an	466
+让大模型帮我改一版	rang da mo xing bang wo gai yi ban	464
+这段文案机器味太重	zhe duan wen an ji qi wei tai zhong	468
+帮我把机器味降下来	bang wo ba ji qi wei jiang xia lai	466
+再降一点机器味	zai jiang yi dian ji qi wei	460
+人工智能味太重了	ren gong zhi neng wei tai zhong le	464
+这版更像人写的	zhe ban geng xiang ren xie de	458
+不要太像机器写的	bu yao tai xiang ji qi xie de	460
+按这个提示词再生成	an zhe ge ti shi ci zai sheng cheng	462
+换个提示词再来一版	huan ge ti shi ci zai lai yi ban	460
+把提示词写具体	ba ti shi ci xie ju ti	456
+按系统提示词来	an xi tong ti shi ci lai	452
+不要覆盖系统提示词	bu yao fu gai xi tong ti shi ci	450
+用人工智能写口播稿	yong ren gong zhi neng xie kou bo gao	458
+生成一条直播话术	sheng cheng yi tiao zhi bo hua shu	454
+帮我生成分镜脚本	bang wo sheng cheng fen jing jiao ben	456
+帮我扩写成口播	bang wo kuo xie cheng kou bo	448
+把口播稿缩短一点	ba kou bo gao suo duan yi dian	446
+压缩到三十秒口播	ya suo dao san shi miao kou bo	444
+用数字人播这一段	yong shu zi ren bo zhe yi duan	458
+用语音克隆配这一段	yong yu yin ke long pei zhe yi duan	454
+声音要像这个主播	sheng yin yao xiang zhe ge zhu bo	446
+声音克隆要本人授权	sheng yin ke long yao ben ren shou quan	450
+换脸要本人授权	huan lian yao ben ren shou quan	448
+给这条视频配一下音	gei zhe tiao shi pin pei yi xia yin	452
+帮我把字幕校对一下	bang wo ba zi mu xiao dui yi xia	450
+把画面描述写具体	ba hua mian miao shu xie ju ti	454
+文生视频再来一版	wen sheng shi pin zai lai yi ban	456
+保持角色长相一致	bao chi jiao se zhang xiang yi zhi	452
+这个角色要前后统一	zhe ge jiao se yao qian hou tong yi	444
+不要在画面里写字	bu yao zai hua mian li xie zi	446
+负面提示词加上文字	fu mian ti shi ci jia shang wen zi	440
+参考图用这张	can kao tu yong zhe zhang	434
+背景换成直播间	bei jing huan cheng zhi bo jian	434
+镜头从左往右移	jing tou cong zuo wang you yi	432
+风格偏电影感	feng ge pian dian ying gan	430
+人物看向镜头	ren wu kan xiang jing tou	428
+光线再亮一点	guang xian zai liang yi dian	426
+这个分镜不够清楚	zhe ge fen jing bu gou qing chu	432
+语速再慢一点	yu su zai man yi dian	424
+停顿自然一点	ting dun zi ran yi dian	422
+标注人工智能生成	biao zhu ren gong zhi neng sheng cheng	460
+这条是人工智能生成的	zhe tiao shi ren gong zhi neng sheng cheng de	458
+生成内容要标明来源	sheng cheng nei rong yao biao ming lai yuan	452
+不要生成虚假新闻	bu yao sheng cheng xu jia xin wen	448
+别编造具体数字	bie bian zao ju ti shu zi	456
+帮我检查有没有编造	bang wo jian cha you mei you bian zao	452
+不确定的地方标出来	bu que ding de di fang biao chu lai	454
+把幻觉的地方改掉	ba huan jue de di fang gai diao	458
+用知识库里的说法	yong zhi shi ku li de shuo fa	456
+先检索知识库再回答	xian jian suo zhi shi ku zai hui da	452
+回答不要脱离知识库	hui da bu yao tuo li zhi shi ku	450
+让智能体帮我拆任务	rang zhi neng ti bang wo chai ren wu	448
+用思维链想清楚再答	yong si wei lian xiang qing chu zai da	446
+把任务拆成三步	ba ren wu chai cheng san bu	434
+调用工具查一下	diao yong gong ju cha yi xia	432
+上下文太长了截一下	shang xia wen tai chang le jie yi xia	440
+只保留最近这一段	zhi bao liu zui jin zhe yi duan	436
+不要把内部资料外传	bu yao ba nei bu zi liao wai chuan	454
+这个要本地部署	zhe ge yao ben di bu shu	448
+用开源模型试一版	yong kai yuan mo xing shi yi ban	442
+对比开源和闭源	dui bi kai yuan he bi yuan	440
+温度调低一点	wen du tiao di yi dian	428
+写成更口语一点	xie cheng geng kou yu yi dian	446
+像主播在说话	xiang zhu bo zai shuo hua	444
+适合口播的句子	shi he kou bo de ju zi	442
+写得有活人感一点	xie de you huo ren gan yi dian	452
+帮我润色这段文案	bang wo run se zhe duan wen an	450
+这版可以直接发	zhe ban ke yi zhi jie fa	442
+语气再自然一点	yu qi zai zi ran yi dian	440
+用大白话讲一遍	yong da bai hua jiang yi bian	438
+帮我续写后面两句	bang wo xu xie hou mian liang ju	444
+保留原来的意思	bao liu yuan lai de yi si	440
+先给大纲再展开	xian gei da gang zai zhan kai	438
+一句一句分开写	yi ju yi ju fen kai xie	436
+删掉套话和空话	shan diao tao hua he kong hua	434
+加上具体例子	jia shang ju ti li zi	432
+不要承诺具体效果	bu yao cheng nuo ju ti xiao guo	446
+功效不要夸大	gong xiao bu yao kua da	442
+这个数据需要核对	zhe ge shu ju xu yao he dui	444
+加上仅供参考	jia shang jin gong can kao	436
+医疗说法交给专业的人	yi liao shuo fa jiao gei zhuan ye de ren	436
+财务数字以报表为准	cai wu shu zi yi bao biao wei zhun	434
+用同一套人设来写	yong tong yi tao ren she lai xie	442
+按人设不要跑偏	an ren she bu yao pao pian	440
+帮我写三条备选标题	bang wo xie san tiao bei xuan biao ti	450
+开头三秒要抓住人	kai tou san miao yao zhua zhu ren	444
+每条只讲一个卖点	mei tiao zhi jiang yi ge mai dian	438
+把利益点说清楚	ba li yi dian shuo qing chu	436
+加上行动号召	jia shang xing dong hao zhao	434
+引导点赞关注	yin dao dian zan guan zhu	432
+直接给成品文案	zhi jie gei cheng pin wen an	446
+先给三个方向	xian gei san ge fang xiang	434
+按第二个方向展开	an di er ge fang xiang zhan kai	432
+保留金句删掉废话	bao liu jin ju shan diao fei hua	436
+这句可以当标题	zhe ju ke yi dang biao ti	430
+封面大字用这句	feng mian da zi yong zhe ju	428
+不要用过时的梗	bu yao yong guo shi de geng	426
+这段可以做切片	zhe duan ke yi zuo qie pian	430
+剪成三条短视频	jian cheng san tiao duan shi pin	428
+帮我写置顶评论	bang wo xie zhi ding ping lun	430
+把高赞评论总结一下	ba gao zan ping lun zong jie yi xia	428
+面向粉丝写一版	mian xiang fen si xie yi ban	438
+面向品牌方写一版	mian xiang pin pai fang xie yi ban	436
+把英文说法换成中文	ba ying wen shuo fa huan cheng zhong wen	442
+解释一下这个概念	jie shi yi xia zhe ge gai nian	434
+品牌名不要写错	pin pai ming bu yao xie cuo	440
+产品名以最新的为准	chan pin ming yi zui xin de wei zhun	436
+活动规则写清楚	huo dong gui ze xie qing chu	432
+抽奖规则不要含糊	chou jiang gui ze bu yao han hu	434
+帮我写直播间欢迎语	bang wo xie zhi bo jian huan ying yu	438
+帮我写福袋口播	bang wo xie fu dai kou bo	434
+帮我写下播感谢	bang wo xie xia bo gan xie	430
+# 谚语
+一寸光阴一寸金	yi cun guang yin yi cun jin	450
+寸金难买寸光阴	cun jin nan mai cun guang yin	440
+三个臭皮匠	san ge chou pi jiang	448
+顶个诸葛亮	ding ge zhu ge liang	446
+只要功夫深	zhi yao gong fu shen	440
+铁杵磨成针	tie chu mo cheng zhen	442
+世上无难事	shi shang wu nan shi	438
+只怕有心人	zhi pa you xin ren	436
+早起的鸟儿有虫吃	zao qi de niao er you chong chi	430
+一分耕耘一分收获	yi fen geng yun yi fen shou huo	444
+吃一堑长一智	chi yi qian zhang yi zhi	442
+失败是成功之母	shi bai shi cheng gong zhi mu	440
+有志者事竟成	you zhi zhe shi jing cheng	446
+路遥知马力	lu yao zhi ma li	438
+日久见人心	ri jiu jian ren xin	440
+人不可貌相	ren bu ke mao xiang	436
+海水不可斗量	hai shui bu ke dou liang	434
+近朱者赤	jin zhu zhe chi	432
+近墨者黑	jin mo zhe hei	430
+读书破万卷	du shu po wan juan	428
+下笔如有神	xia bi ru you shen	426
+书到用时方恨少	shu dao yong shi fang hen shao	430
+事非经过不知难	shi fei jing guo bu zhi nan	424
+不经一事不长一智	bu jing yi shi bu zhang yi zhi	428
+百闻不如一见	bai wen bu ru yi jian	434
+眼见为实	yan jian wei shi	430
+耳听为虚	er ting wei xu	420
+一言既出	yi yan ji chu	428
+驷马难追	si ma nan zhui	426
+言必信行必果	yan bi xin xing bi guo	424
+君子一言	jun zi yi yan	420
+快马一鞭	kuai ma yi bian	410
+病从口入	bing cong kou ru	430
+祸从口出	huo cong kou chu	432
+良药苦口利于病	liang yao ku kou li yu bing	428
+忠言逆耳利于行	zhong yan ni er li yu xing	426
+己所不欲	ji suo bu yu	440
+勿施于人	wu shi yu ren	442
+种瓜得瓜	zhong gua de gua	436
+种豆得豆	zhong dou de dou	434
+善有善报	shan you shan bao	430
+恶有恶报	e you e bao	428
+不是不报	bu shi bu bao	420
+时候未到	shi hou wei dao	410
+多行不义必自毙	duo xing bu yi bi zi bi	426
+得道多助	de dao duo zhu	424
+失道寡助	shi dao gua zhu	422
+民以食为天	min yi shi wei tian	440
+国以民为本	guo yi min wei ben	420
+水能载舟	shui neng zai zhou	428
+亦能覆舟	yi neng fu zhou	426
+千里之堤溃于蚁穴	qian li zhi di kui yu yi xue	430
+防微杜渐	fang wei du jian	428
+亡羊补牢	wang yang bu lao	436
+未为晚也	wei wei wan ye	420
+授人以鱼	shou ren yi yu	424
+不如授人以渔	bu ru shou ren yi yu	426
+磨刀不误砍柴工	mo dao bu wu kan chai gong	432
+欲速则不达	yu su ze bu da	434
+心急吃不了热豆腐	xin ji chi bu liao re dou fu	428
+留得青山在	liu de qing shan zai	430
+不怕没柴烧	bu pa mei chai shao	418
+车到山前必有路	che dao shan qian bi you lu	432
+船到桥头自然直	chuan dao qiao tou zi ran zhi	430
+塞翁失马焉知非福	sai weng shi ma yan zhi fei fu	434
+失之东隅收之桑榆	shi zhi dong yu shou zhi sang yu	420
+机不可失	ji bu ke shi	426
+时不再来	shi bu zai lai	424
+少壮不努力	shao zhuang bu nu li	430
+老大徒伤悲	lao da tu shang bei	428
+一失足成千古恨	yi shi zu cheng qian gu hen	422
+再回头是百年身	zai hui tou shi bai nian shen	410
+人无远虑	ren wu yuan lv	426
+必有近忧	bi you jin you	424
+凡事预则立	fan shi yu ze li	422
+不预则废	bu yu ze fei	418
+工欲善其事	gong yu shan qi shi	440
+必先利其器	bi xian li qi qi	438
+知己知彼	zhi ji zhi bi	436
+百战不殆	bai zhan bu dai	434
+不入虎穴	bu ru hu xue	428
+焉得虎子	yan de hu zi	426
+吃得苦中苦	chi de ku zhong ku	424
+方为人上人	fang wei ren shang ren	420
+宝剑锋从磨砺出	bao jian feng cong mo li chu	430
+梅花香自苦寒来	mei hua xiang zi ku han lai	432
+冰冻三尺	bing dong san chi	426
+非一日之寒	fei yi ri zhi han	424
+滴水穿石	di shui chuan shi	430
+绳锯木断	sheng ju mu duan	422
+聚沙成塔	ju sha cheng ta	420
+集腋成裘	ji ye cheng qiu	418
+千里之行	qian li zhi xing	436
+始于足下	shi yu zu xia	434
+九层之台	jiu ceng zhi tai	420
+起于累土	qi yu lei tu	418
+合抱之木	he bao zhi mu	416
+生于毫末	sheng yu hao mo	414
+不积跬步	bu ji kui bu	422
+无以至千里	wu yi zhi qian li	420
+不积小流	bu ji xiao liu	418
+无以成江海	wu yi cheng jiang hai	416
+学如逆水行舟	xue ru ni shui xing zhou	424
+不进则退	bu jin ze tui	422
+活到老学到老	huo dao lao xue dao lao	430
+三人行必有我师	san ren xing bi you wo shi	436
+敏而好学	min er hao xue	420
+不耻下问	bu chi xia wen	428
+温故而知新	wen gu er zhi xin	434
+可以为师矣	ke yi wei shi yi	410
+学而不思则罔	xue er bu si ze wang	432
+思而不学则殆	si er bu xue ze dai	430
+知之为知之	zhi zhi wei zhi zhi	428
+不知为不知	bu zhi wei bu zhi	426
+是知也	shi zhi ye	400
+# 文言文与名句
+学而时习之	xue er shi xi zhi	448
+不亦说乎	bu yi yue hu	440
+有朋自远方来	you peng zi yuan fang lai	446
+不亦乐乎	bu yi le hu	444
+人不知而不愠	ren bu zhi er bu yun	430
+不亦君子乎	bu yi jun zi hu	428
+吾日三省吾身	wu ri san xing wu shen	436
+为人谋而不忠乎	wei ren mou er bu zhong hu	420
+与朋友交而不信乎	yu peng you jiao er bu xin hu	418
+传不习乎	chuan bu xi hu	416
+道可道	dao ke dao	430
+非常道	fei chang dao	428
+名可名	ming ke ming	420
+非常名	fei chang ming	418
+上善若水	shang shan ruo shui	450
+水利万物而不争	shui li wan wu er bu zheng	410
+知人者智	zi ren zhe zhi	424
+自知者明	zi zhi zhe ming	426
+胜人者有力	sheng ren zhe you li	420
+自胜者强	zi sheng zhe qiang	422
+祸兮福所倚	huo xi fu suo yi	430
+福兮祸所伏	fu xi huo suo fu	428
+大巧若拙	da qiao ruo zhuo	418
+大辩若讷	da bian ruo ne	416
+无为而治	wu wei er zhi	424
+无为而无不为	wu wei er wu bu wei	420
+飘风不终朝	piao feng bu zhong zhao	410
+骤雨不终日	zhou yu bu zhong ri	408
+知足不辱	zhi zu bu ru	422
+知止不殆	zhi zhi bu dai	420
+柔弱胜刚强	rou ruo sheng gang qiang	418
+君子坦荡荡	jun zi tan dang dang	432
+小人长戚戚	xiao ren chang qi qi	420
+朝闻道	zhao wen dao	416
+夕死可矣	xi si ke yi	414
+不义而富且贵	bu yi er fu qie gui	412
+于我如浮云	yu wo ru fu yun	418
+逝者如斯夫	shi zhe ru si fu	422
+不舍昼夜	bu she zhou ye	420
+三军可夺帅	san jun ke duo shuai	416
+匹夫不可夺志	pi fu bu ke duo zhi	418
+道不同不相为谋	dao bu tong bu xiang wei mou	422
+不在其位	bu zai qi wei	416
+不谋其政	bu mou qi zheng	414
+知者不惑	zhi zhe bu huo	420
+仁者不忧	ren zhe bu you	418
+勇者不惧	yong zhe bu ju	416
+己欲立而立人	ji yu li er li ren	410
+己欲达而达人	ji yu da er da ren	408
+礼之用	li zhi yong	400
+和为贵	he wei gui	430
+有教无类	you jiao wu lei	422
+因材施教	yin cai shi jiao	428
+教学相长	jiao xue xiang zhang	424
+青出于蓝	qing chu yu lan	426
+而胜于蓝	er sheng yu lan	410
+锲而不舍	qie er bu she	428
+金石可镂	jin shi ke lou	420
+吾生也有涯	wu sheng ye you ya	400
+而知也无涯	er zhi ye wu ya	400
+井底之蛙	jing di zhi wa	424
+坐井观天	zuo jing guan tian	422
+邯郸学步	han dan xue bu	416
+东施效颦	dong shi xiao pin	418
+守株待兔	shou zhu dai tu	422
+掩耳盗铃	yan er dao ling	420
+画蛇添足	hua she tian zu	424
+买椟还珠	mai du huan zhu	416
+叶公好龙	ye gong hao long	418
+狐假虎威	hu jia hu wei	420
+黔驴技穷	qian lv ji qiong	416
+滥竽充数	lan yu chong shu	418
+自相矛盾	zi xiang mao dun	422
+刻舟求剑	ke zhou qiu jian	420
+望梅止渴	wang mei zhi ke	418
+指鹿为马	zhi lu wei ma	416
+纸上谈兵	zhi shang tan bing	420
+负荆请罪	fu jing qing zui	414
+完璧归赵	wan bi gui zhao	416
+价值连城	jia zhi lian cheng	418
+怒发冲冠	nu fa chong guan	412
+图穷匕见	tu qiong bi xian	414
+荆轲刺秦	jing ke ci qin	410
+卧薪尝胆	wo xin chang dan	422
+破釜沉舟	po fu chen zhou	424
+背水一战	bei shui yi zhan	420
+四面楚歌	si mian chu ge	418
+霸王别姬	ba wang bie ji	416
+约法三章	yue fa san zhang	414
+运筹帷幄	yun chou wei wo	416
+决胜千里	jue sheng qian li	414
+鸿门宴	hong men yan	412
+破镜重圆	po jing chong yuan	410
+# 诗词名句
+床前明月光	chuang qian ming yue guang	470
+疑是地上霜	yi shi di shang shuang	460
+举头望明月	ju tou wang ming yue	462
+低头思故乡	di tou si gu xiang	462
+春眠不觉晓	chun mian bu jue xiao	464
+处处闻啼鸟	chu chu wen ti niao	450
+夜来风雨声	ye lai feng yu sheng	448
+花落知多少	hua luo zhi duo shao	450
+锄禾日当午	chu he ri dang wu	460
+汗滴禾下土	han di he xia tu	452
+谁知盘中餐	shui zhi pan zhong can	454
+粒粒皆辛苦	li li jie xin ku	456
+离离原上草	li li yuan shang cao	452
+一岁一枯荣	yi sui yi ku rong	444
+野火烧不尽	ye huo shao bu jin	450
+春风吹又生	chun feng chui you sheng	452
+白日依山尽	bai ri yi shan jin	458
+黄河入海流	huang he ru hai liu	456
+欲穷千里目	yu qiong qian li mu	460
+更上一层楼	geng shang yi ceng lou	462
+海内存知己	hai nei cun zhi ji	458
+天涯若比邻	tian ya ruo bi lin	456
+两个黄鹂鸣翠柳	liang ge huang li ming cui liu	450
+一行白鹭上青天	yi hang bai lu shang qing tian	448
+窗含西岭千秋雪	chuang han xi ling qian qiu xue	444
+门泊东吴万里船	men bo dong wu wan li chuan	442
+国破山河在	guo po shan he zai	450
+城春草木深	cheng chun cao mu shen	440
+感时花溅泪	gan shi hua jian lei	446
+恨别鸟惊心	hen bie niao jing xin	440
+烽火连三月	feng huo lian san yue	438
+家书抵万金	jia shu di wan jin	448
+无边落木萧萧下	wu bian luo mu xiao xiao xia	446
+不尽长江滚滚来	bu jin chang jiang gun gun lai	448
+朝辞白帝彩云间	chao ci bai di cai yun jian	452
+千里江陵一日还	qian li jiang ling yi ri huan	446
+两岸猿声啼不住	liang an yuan sheng ti bu zhu	448
+轻舟已过万重山	qing zhou yi guo wan chong shan	450
+飞流直下三千尺	fei liu zhi xia san qian chi	452
+疑是银河落九天	yi shi yin he luo jiu tian	450
+桃花潭水深千尺	tao hua tan shui shen qian chi	444
+不及汪伦送我情	bu ji wang lun song wo qing	446
+月落乌啼霜满天	yue luo wu ti shuang man tian	450
+江枫渔火对愁眠	jiang feng yu huo dui chou mian	448
+姑苏城外寒山寺	gu su cheng wai han shan si	446
+夜半钟声到客船	ye ban zhong sheng dao ke chuan	448
+劝君更尽一杯酒	quan jun geng jin yi bei jiu	450
+西出阳关无故人	xi chu yang guan wu gu ren	452
+秦时明月汉时关	qin shi ming yue han shi guan	446
+万里长征人未还	wan li chang zheng ren wei huan	444
+但使龙城飞将在	dan shi long cheng fei jiang zai	440
+不教胡马度阴山	bu jiao hu ma du yin shan	442
+葡萄美酒夜光杯	pu tao mei jiu ye guang bei	444
+欲饮琵琶马上催	yu yin pi pa ma shang cui	440
+醉卧沙场君莫笑	zui wo sha chang jun mo xiao	442
+古来征战几人回	gu lai zheng zhan ji ren hui	444
+停车坐爱枫林晚	ting che zuo ai feng lin wan	446
+霜叶红于二月花	shuang ye hong yu er yue hua	448
+春蚕到死丝方尽	chun can dao si si fang jin	450
+蜡炬成灰泪始干	la zhu cheng hui lei shi gan	448
+身无彩凤双飞翼	shen wu cai feng shuang fei yi	440
+心有灵犀一点通	xin you ling xi yi dian tong	446
+相见时难别亦难	xiang jian shi nan bie yi nan	444
+曾经沧海难为水	ceng jing cang hai nan wei shui	446
+除却巫山不是云	chu que wu shan bu shi yun	442
+同是天涯沦落人	tong shi tian ya lun luo ren	444
+相逢何必曾相识	xiang feng he bi ceng xiang shi	442
+此时无声胜有声	ci shi wu sheng sheng you sheng	446
+在天愿作比翼鸟	zai tian yuan zuo bi yi niao	440
+在地愿为连理枝	zai di yuan wei lian li zhi	438
+天长地久有时尽	tian chang di jiu you shi jin	436
+此恨绵绵无绝期	ci hen mian mian wu jue qi	438
+海上生明月	hai shang sheng ming yue	444
+天涯共此时	tian ya gong ci shi	440
+何当共剪西窗烛	he dang gong jian xi chuang zhu	446
+却话巴山夜雨时	que hua ba shan ye yu shi	444
+君问归期未有期	jun wen gui qi wei you qi	446
+巴山夜雨涨秋池	ba shan ye yu zhang qiu chi	444
+商女不知亡国恨	shang nv bu zhi wang guo hen	440
+隔江犹唱后庭花	ge jiang you chang hou ting hua	442
+南朝四百八十寺	nan chao si bai ba shi si	436
+多少楼台烟雨中	duo shao lou tai yan yu zhong	440
+东风不与周郎便	dong feng bu yu zhou lang bian	438
+铜雀春深锁二乔	tong que chun shen suo er qiao	436
+日出江花红胜火	ri chu jiang hua hong sheng huo	444
+春来江水绿如蓝	chun lai jiang shui lv ru lan	446
+能不忆江南	neng bu yi jiang nan	442
+江南好	jiang nan hao	440
+旧时王谢堂前燕	jiu shi wang xie tang qian yan	438
+飞入寻常百姓家	fei ru xun chang bai xing jia	440
+千山鸟飞绝	qian shan niao fei jue	444
+万径人踪灭	wan jing ren zong mie	442
+孤舟蓑笠翁	gu zhou suo li weng	446
+独钓寒江雪	du diao han jiang xue	448
+空山新雨后	kong shan xin yu hou	440
+天气晚来秋	tian qi wan lai qiu	436
+明月松间照	ming yue song jian zhao	442
+清泉石上流	qing quan shi shang liu	444
+竹喧归浣女	zhu xuan gui huan nv	436
+莲动下渔舟	lian dong xia yu zhou	434
+大漠孤烟直	da mo gu yan zhi	446
+长河落日圆	chang he luo ri yuan	448
+明月几时有	ming yue ji shi you	460
+把酒问青天	ba jiu wen qing tian	456
+我欲乘风归去	wo yu cheng feng gui qu	448
+又恐琼楼玉宇	you kong qiong lou yu yu	440
+高处不胜寒	gao chu bu sheng han	450
+起舞弄清影	qi wu nong qing ying	446
+何似在人间	he si zai ren jian	448
+但愿人长久	dan yuan ren chang jiu	458
+千里共婵娟	qian li gong chan juan	456
+人有悲欢离合	ren you bei huan li he	450
+月有阴晴圆缺	yue you yin qing yuan que	448
+此事古难全	ci shi gu nan quan	440
+大江东去	da jiang dong qu	452
+浪淘尽	lang tao jin	430
+千古风流人物	qian gu feng liu ren wu	444
+乱石穿空	luan shi chuan kong	436
+惊涛拍岸	jing tao pai an	438
+卷起千堆雪	juan qi qian dui xue	440
+江山如画	jiang shan ru hua	442
+一时多少豪杰	yi shi duo shao hao jie	436
+羽扇纶巾	yu shan guan jin	434
+谈笑间	tan xiao jian	428
+樯橹灰飞烟灭	qiang lu hui fei yan mie	432
+人生如梦	ren sheng ru meng	440
+一尊还酹江月	yi zun huan lei jiang yue	430
+寻寻觅觅	xun xun mi mi	444
+冷冷清清	leng leng qing qing	442
+凄凄惨惨戚戚	qi qi can can qi qi	440
+乍暖还寒	zha nuan huan han	430
+最难将息	zui nan jiang xi	428
+众里寻他千百度	zhong li xun ta qian bai du	452
+蓦然回首	mo ran hui shou	448
+那人却在灯火阑珊处	na ren que zai deng huo lan shan chu	450
+衣带渐宽终不悔	yi dai jian kuan zhong bu hui	446
+为伊消得人憔悴	wei yi xiao de ren qiao cui	444
+无可奈何花落去	wu ke nai he hua luo qu	448
+似曾相识燕归来	si ceng xiang shi yan gui lai	446
+两情若是久长时	liang qing ruo shi jiu chang shi	448
+又岂在朝朝暮暮	you qi zai zhao zhao mu mu	446
+问君能有几多愁	wen jun neng you ji duo chou	450
+恰似一江春水向东流	qia si yi jiang chun shui xiang dong liu	452
+春花秋月何时了	chun hua qiu yue he shi liao	448
+往事知多少	wang shi zhi duo shao	444
+小楼昨夜又东风	xiao lou zuo ye you dong feng	440
+故国不堪回首月明中	gu guo bu kan hui shou yue ming zhong	436
+雕栏玉砌应犹在	diao lan yu qi ying you zai	434
+只是朱颜改	zhi shi zhu yan gai	432
+剪不断理还乱	jian bu duan li huan luan	440
+是离愁	shi li chou	420
+别是一般滋味在心头	bie shi yi ban zi wei zai xin tou	438
+无言独上西楼	wu yan du shang xi lou	442
+月如钩	yue ru gou	430
+寂寞梧桐深院锁清秋	ji mo wu tong shen yuan suo qing qiu	436
+关关雎鸠	guan guan ju jiu	450
+在河之洲	zai he zhi zhou	444
+窈窕淑女	yao tiao shu nv	452
+君子好逑	jun zi hao qiu	448
+蒹葭苍苍	jian jia cang cang	446
+白露为霜	bai lu wei shuang	444
+所谓伊人	suo wei yi ren	446
+在水一方	zai shui yi fang	448
+溯洄从之	su hui cong zhi	430
+道阻且长	dao zu qie chang	436
+桃之夭夭	tao zhi yao yao	440
+灼灼其华	zhuo zhuo qi hua	438
+执子之手	zhi zi zhi shou	450
+与子偕老	yu zi xie lao	448
+死生契阔	si sheng qi kuo	436
+投我以木桃	tou wo yi mu tao	428
+报之以琼瑶	bao zhi yi qiong yao	426
+昔我往矣	xi wo wang yi	430
+杨柳依依	yang liu yi yi	440
+今我来思	jin wo lai si	428
+雨雪霏霏	yu xue fei fei	436
+如切如磋	ru qie ru cuo	420
+如琢如磨	ru zhuo ru mo	418
+巧笑倩兮	qiao xiao qian xi	416
+美目盼兮	mei mu pan xi	414
+路漫漫其修远兮	lu man man qi xiu yuan xi	440
+吾将上下而求索	wu jiang shang xia er qiu suo	442
+长太息以掩涕兮	chang tai xi yi yan ti xi	410
+哀民生之多艰	ai min sheng zhi duo jian	412
+亦余心之所善兮	yi yu xin zhi suo shan xi	400
+虽九死其犹未悔	sui jiu si qi you wei hui	420
+# 歇后语
+芝麻开花节节高	zhi ma kai hua jie jie gao	430
+竹篮打水一场空	zhu lan da shui yi chang kong	432
+八仙过海各显神通	ba xian guo hai ge xian shen tong	434
+猪八戒照镜子里外不是人	zhu ba jie zhao jing zi li wai bu shi ren	410
+老鼠过街人人喊打	lao shu guo jie ren ren han da	428
+黄鼠狼给鸡拜年没安好心	huang shu lang gei ji bai nian mei an hao xin	424
+千里送鹅毛礼轻情意重	qian li song e mao li qing qing yi zhong	426
+王婆卖瓜自卖自夸	wang po mai gua zi mai zi kua	430
+小葱拌豆腐一清二白	xiao cong ban dou fu yi qing er bai	428
+打开天窗说亮话	da kai tian chuang shuo liang hua	426
+外甥打灯笼照旧	wai sheng da deng long zhao jiu	420
+孔夫子搬家尽是书	kong fu zi ban jia jin shi shu	418
+十五个吊桶七上八下	shi wu ge diao tong qi shang ba xia	424
+热锅上的蚂蚁团团转	re guo shang de ma yi tuan tuan zhuan	422
+泥菩萨过江自身难保	ni pu sa guo jiang zi shen nan bao	426
+哑巴吃黄连有苦说不出	ya ba chi huang lian you ku shuo bu chu	424
+姜太公钓鱼愿者上钩	jiang tai gong diao yu yuan zhe shang gou	430
+徐庶进曹营一言不发	xu shu jin cao ying yi yan bu fa	410
+刘备借荆州有借无还	liu bei jie jing zhou you jie wu huan	408
+周瑜打黄盖一个愿打一个愿挨	zhou yu da huang gai yi ge yuan da yi ge yuan ai	412
+猪八戒戴眼镜冒充斯文人	zhu ba jie dai yan jing mao chong si wen ren	400
+老虎屁股摸不得	lao hu pi gu mo bu de	422
+狗拿耗子多管闲事	gou na hao zi duo guan xian shi	420
+猫哭耗子假慈悲	mao ku hao zi jia ci bei	418
+乌鸦笑猪黑	wu ya xiao zhu hei	410
+五十步笑百步	wu shi bu xiao bai bu	416
+此地无银三百两	ci di wu yin san bai liang	422
+搬起石头砸自己的脚	ban qi shi tou za zi ji de jiao	424
+敬酒不吃吃罚酒	jing jiu bu chi chi fa jiu	420
+有眼不识泰山	you yan bu shi tai shan	418
+大水冲了龙王庙	da shui chong le long wang miao	422
+一家人不认一家人	yi jia ren bu ren yi jia ren	416
+天下没有不散的筵席	tian xia mei you bu san de yan xi	428
+放长线钓大鱼	fang chang xian diao da yu	420
+留得青山在不怕没柴烧	liu de qing shan zai bu pa mei chai shao	416
+# 直播与带货常用
+大家好	da jia hao	470
+家人们好	jia ren men hao	440
+欢迎来到直播间	huan ying lai dao zhi bo jian	450
+点点关注	dian dian guan zhu	444
+点点赞	dian dian zan	430
+左上角福袋	zuo shang jiao fu dai	420
+扣一波一	kou yi bo yi	418
+已拍的扣已拍	yi pai de kou yi pai	410
+库存不多了	ku cun bu duo le	428
+最后一波	zui hou yi bo	430
+拍立减	pai li jian	424
+今日专属	jin ri zhuan shu	416
+链接在下方	lian jie zai xia fang	422
+小黄车	xiao huang che	440
+上车	shang che	430
+三二一上链接	san er yi shang lian jie	426
+感谢榜一大哥	gan xie bang yi da ge	420
+感谢家人们	gan xie jia ren men	432
+记得关注	ji de guan zhu	448
+晚上见	wan shang jian	420
+今晚直播间见	jin wan zhi bo jian jian	430
+苏晟	su sheng	480
+苏晟集团	su sheng ji tuan	460
+合作达人	he zuo da ren	430

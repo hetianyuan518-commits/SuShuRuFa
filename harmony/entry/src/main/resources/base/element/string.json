@@ -1,0 +1,8 @@
+{
+  "string": [
+    { "name": "app_name", "value": "苏晟输入法" },
+    { "name": "module_desc", "value": "苏晟输入法" },
+    { "name": "entry_desc", "value": "登录并同步官方话术" },
+    { "name": "ime_desc", "value": "苏晟拼音" }
+  ]
+}

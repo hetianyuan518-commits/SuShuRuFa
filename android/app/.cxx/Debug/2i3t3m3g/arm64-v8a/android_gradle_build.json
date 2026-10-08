@@ -1,0 +1,47 @@
+{
+  "buildFiles": [
+    "/Users/yuanwai/ai/susheng/android/app/src/main/cpp/CMakeLists.txt"
+  ],
+  "cleanCommandsComponents": [
+    [
+      "/Users/yuanwai/Library/Android/sdk/cmake/3.22.1/bin/ninja",
+      "-C",
+      "/Users/yuanwai/ai/susheng/android/app/.cxx/Debug/2i3t3m3g/arm64-v8a",
+      "clean"
+    ]
+  ],
+  "buildTargetsCommandComponents": [
+    "/Users/yuanwai/Library/Android/sdk/cmake/3.22.1/bin/ninja",
+    "-C",
+    "/Users/yuanwai/ai/susheng/android/app/.cxx/Debug/2i3t3m3g/arm64-v8a",
+    "{LIST_OF_TARGETS_TO_BUILD}"
+  ],
+  "libraries": {
+    "handrec::@6890427a1f51a3e7e1df": {
+      "toolchain": "toolchain",
+      "abi": "arm64-v8a",
+      "artifactName": "handrec",
+      "output": "/Users/yuanwai/ai/susheng/android/app/build/intermediates/cxx/Debug/2i3t3m3g/obj/arm64-v8a/libhandrec.so",
+      "runtimeFiles": [
+        "/Users/yuanwai/ai/susheng/android/app/src/main/jniLibs/arm64-v8a/libncnn.so"
+      ]
+    },
+    "susheng_rime::@6890427a1f51a3e7e1df": {
+      "toolchain": "toolchain",
+      "abi": "arm64-v8a",
+      "artifactName": "susheng_rime",
+      "output": "/Users/yuanwai/ai/susheng/android/app/build/intermediates/cxx/Debug/2i3t3m3g/obj/arm64-v8a/libsusheng_rime.so",
+      "runtimeFiles": []
+    }
+  },
+  "toolchains": {
+    "toolchain": {
+      "cCompilerExecutable": "/Users/yuanwai/Library/Android/sdk/ndk/25.1.8937393/toolchains/llvm/prebuilt/darwin-x86_64/bin/clang.lld",
+      "cppCompilerExecutable": "/Users/yuanwai/Library/Android/sdk/ndk/25.1.8937393/toolchains/llvm/prebuilt/darwin-x86_64/bin/clang++.lld"
+    }
+  },
+  "cFileExtensions": [],
+  "cppFileExtensions": [
+    "cpp"
+  ]
+}

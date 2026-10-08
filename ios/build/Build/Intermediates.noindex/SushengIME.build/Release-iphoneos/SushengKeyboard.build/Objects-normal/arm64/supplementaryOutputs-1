@@ -1,0 +1,12 @@
+{
+  "/Users/yuanwai/ai/susheng/ios/Shared/PinyinEngine.swift" : {
+    "abi-baseline-json" : "/Users/yuanwai/ai/susheng/ios/build/Build/Intermediates.noindex/SushengIME.build/Release-iphoneos/SushengKeyboard.build/Objects-normal/arm64/SushengKeyboard.abi.json",
+    "const-values" : "/Users/yuanwai/ai/susheng/ios/build/Build/Intermediates.noindex/SushengIME.build/Release-iphoneos/SushengKeyboard.build/Objects-normal/arm64/SushengKeyboard-primary.swiftconstvalues",
+    "dependencies" : "/Users/yuanwai/ai/susheng/ios/build/Build/Intermediates.noindex/SushengIME.build/Release-iphoneos/SushengKeyboard.build/Objects-normal/arm64/SushengKeyboard-primary.d",
+    "diagnostics" : "/Users/yuanwai/ai/susheng/ios/build/Build/Intermediates.noindex/SushengIME.build/Release-iphoneos/SushengKeyboard.build/Objects-normal/arm64/SushengKeyboard-primary.dia",
+    "objc-header" : "/Users/yuanwai/ai/susheng/ios/build/Build/Intermediates.noindex/SushengIME.build/Release-iphoneos/SushengKeyboard.build/Objects-normal/arm64/SushengKeyboard-Swift.h",
+    "swiftdoc" : "/Users/yuanwai/ai/susheng/ios/build/Build/Intermediates.noindex/SushengIME.build/Release-iphoneos/SushengKeyboard.build/Objects-normal/arm64/SushengKeyboard.swiftdoc",
+    "swiftmodule" : "/Users/yuanwai/ai/susheng/ios/build/Build/Intermediates.noindex/SushengIME.build/Release-iphoneos/SushengKeyboard.build/Objects-normal/arm64/SushengKeyboard.swiftmodule",
+    "swiftsourceinfo" : "/Users/yuanwai/ai/susheng/ios/build/Build/Intermediates.noindex/SushengIME.build/Release-iphoneos/SushengKeyboard.build/Objects-normal/arm64/SushengKeyboard.swiftsourceinfo"
+  }
+}

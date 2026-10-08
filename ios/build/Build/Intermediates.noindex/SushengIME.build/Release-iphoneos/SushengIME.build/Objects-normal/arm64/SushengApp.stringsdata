@@ -1,0 +1,248 @@
+{
+  "source": "/Users/yuanwai/ai/susheng/ios/App/SushengApp.swift",
+  "tables": {
+    "Localizable": [
+      {
+        "comment": "",
+        "key": "将「苏晟输入法」设为默认输入法",
+        "location": {
+          "startingColumn": 18,
+          "startingLine": 54
+        }
+      },
+      {
+        "comment": "",
+        "key": "打开 设置 → 通用 → 键盘 → 键盘 → 添加新键盘 → 苏晟输入法。需要剪贴板或图片时，再打开完全访问。按键内容不会上传。",
+        "location": {
+          "startingColumn": 18,
+          "startingLine": 55
+        }
+      },
+      {
+        "comment": "",
+        "key": "我已添加，继续",
+        "location": {
+          "startingColumn": 20,
+          "startingLine": 58
+        }
+      },
+      {
+        "comment": "",
+        "key": "欢迎您体验",
+        "location": {
+          "startingColumn": 18,
+          "startingLine": 70
+        }
+      },
+      {
+        "comment": "",
+        "key": "苏晟输入法",
+        "location": {
+          "startingColumn": 18,
+          "startingLine": 71
+        }
+      },
+      {
+        "comment": "",
+        "key": "请阅读协议后选择。同意后进入首页。苏晟输入法不上传你敲下的文字。",
+        "location": {
+          "startingColumn": 18,
+          "startingLine": 72
+        }
+      },
+      {
+        "comment": "",
+        "key": "《%@》",
+        "location": {
+          "startingColumn": 24,
+          "startingLine": 74
+        }
+      },
+      {
+        "comment": "",
+        "key": "拒绝",
+        "location": {
+          "startingColumn": 24,
+          "startingLine": 82
+        }
+      },
+      {
+        "comment": "",
+        "key": "同意",
+        "location": {
+          "startingColumn": 24,
+          "startingLine": 83
+        }
+      },
+      {
+        "comment": "",
+        "key": "返回",
+        "location": {
+          "startingColumn": 24,
+          "startingLine": 97
+        }
+      },
+      {
+        "comment": "",
+        "key": "装扮商城",
+        "location": {
+          "startingColumn": 22,
+          "startingLine": 133
+        }
+      },
+      {
+        "comment": "",
+        "key": "套装",
+        "location": {
+          "startingColumn": 22,
+          "startingLine": 135
+        }
+      },
+      {
+        "comment": "",
+        "key": "免费使用",
+        "location": {
+          "startingColumn": 32,
+          "startingLine": 140
+        }
+      },
+      {
+        "comment": "",
+        "key": "使用中",
+        "location": {
+          "startingColumn": 40,
+          "startingLine": 163
+        }
+      },
+      {
+        "comment": "",
+        "key": "免费使用",
+        "location": {
+          "startingColumn": 54,
+          "startingLine": 163
+        }
+      },
+      {
+        "comment": "",
+        "key": "语录",
+        "location": {
+          "startingColumn": 22,
+          "startingLine": 176
+        }
+      },
+      {
+        "comment": "",
+        "key": "还没有同步内容。到「我的」→「设置」登录并同步。",
+        "location": {
+          "startingColumn": 26,
+          "startingLine": 178
+        }
+      },
+      {
+        "comment": "",
+        "key": "已拥有的皮肤",
+        "location": {
+          "startingColumn": 22,
+          "startingLine": 213
+        }
+      },
+      {
+        "comment": "",
+        "key": "设置",
+        "location": {
+          "startingColumn": 24,
+          "startingLine": 215
+        }
+      },
+      {
+        "comment": "",
+        "key": "用户服务协议",
+        "location": {
+          "startingColumn": 24,
+          "startingLine": 216
+        }
+      },
+      {
+        "comment": "",
+        "key": "隐私政策",
+        "location": {
+          "startingColumn": 24,
+          "startingLine": 217
+        }
+      },
+      {
+        "comment": "",
+        "key": "当前皮肤 · %@",
+        "location": {
+          "startingColumn": 30,
+          "startingLine": 206
+        }
+      },
+      {
+        "comment": "",
+        "key": "启用方式：设置 → 通用 → 键盘 → 键盘 → 添加新键盘 → 苏晟输入法。",
+        "location": {
+          "startingColumn": 22,
+          "startingLine": 236
+        }
+      },
+      {
+        "comment": "",
+        "key": "内容台地址",
+        "location": {
+          "startingColumn": 27,
+          "startingLine": 230
+        }
+      },
+      {
+        "comment": "",
+        "key": "账号",
+        "location": {
+          "startingColumn": 27,
+          "startingLine": 231
+        }
+      },
+      {
+        "comment": "",
+        "key": "密码",
+        "location": {
+          "startingColumn": 29,
+          "startingLine": 232
+        }
+      },
+      {
+        "comment": "",
+        "key": "登录",
+        "location": {
+          "startingColumn": 24,
+          "startingLine": 233
+        }
+      },
+      {
+        "comment": "",
+        "key": "同步内容包",
+        "location": {
+          "startingColumn": 24,
+          "startingLine": 235
+        }
+      },
+      {
+        "comment": "",
+        "key": "设置",
+        "location": {
+          "startingColumn": 26,
+          "startingLine": 228
+        }
+      },
+      {
+        "comment": "",
+        "key": "返回",
+        "location": {
+          "startingColumn": 28,
+          "startingLine": 227
+        }
+      }
+    ]
+  },
+  "version": 1
+}

@@ -1,0 +1,7 @@
+{
+  "private": true,
+  "devDependencies": {
+    "@ohos/hvigor": "5.10.3",
+    "@ohos/hvigor-ohos-plugin": "5.10.3"
+  }
+}

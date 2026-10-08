@@ -1,0 +1,12 @@
+[
+{
+  "directory": "/Users/yuanwai/ai/susheng/android/app/.cxx/Debug/2i3t3m3g/x86_64",
+  "command": "/Users/yuanwai/Library/Android/sdk/ndk/25.1.8937393/toolchains/llvm/prebuilt/darwin-x86_64/bin/clang++ --target=x86_64-none-linux-android28 --sysroot=/Users/yuanwai/Library/Android/sdk/ndk/25.1.8937393/toolchains/llvm/prebuilt/darwin-x86_64/sysroot -Dsusheng_rime_EXPORTS -g -DANDROID -fdata-sections -ffunction-sections -funwind-tables -fstack-protector-strong -no-canonical-prefixes -D_FORTIFY_SOURCE=2 -Wformat -Werror=format-security   -fno-limit-debug-info  -fPIC -o CMakeFiles/susheng_rime.dir/rime_jni.cpp.o -c /Users/yuanwai/ai/susheng/android/app/src/main/cpp/rime_jni.cpp",
+  "file": "/Users/yuanwai/ai/susheng/android/app/src/main/cpp/rime_jni.cpp"
+},
+{
+  "directory": "/Users/yuanwai/ai/susheng/android/app/.cxx/Debug/2i3t3m3g/x86_64",
+  "command": "/Users/yuanwai/Library/Android/sdk/ndk/25.1.8937393/toolchains/llvm/prebuilt/darwin-x86_64/bin/clang++ --target=x86_64-none-linux-android28 --sysroot=/Users/yuanwai/Library/Android/sdk/ndk/25.1.8937393/toolchains/llvm/prebuilt/darwin-x86_64/sysroot -Dhandrec_EXPORTS -I/Users/yuanwai/ai/susheng/android/app/src/main/cpp/third_party -g -DANDROID -fdata-sections -ffunction-sections -funwind-tables -fstack-protector-strong -no-canonical-prefixes -D_FORTIFY_SOURCE=2 -Wformat -Werror=format-security   -fno-limit-debug-info  -fPIC -o CMakeFiles/handrec.dir/hand_jni.cpp.o -c /Users/yuanwai/ai/susheng/android/app/src/main/cpp/hand_jni.cpp",
+  "file": "/Users/yuanwai/ai/susheng/android/app/src/main/cpp/hand_jni.cpp"
+}
+]

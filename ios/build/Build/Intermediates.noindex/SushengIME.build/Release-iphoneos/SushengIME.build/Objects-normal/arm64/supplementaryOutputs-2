@@ -1,0 +1,12 @@
+{
+  "/Users/yuanwai/ai/susheng/ios/App/SushengApp.swift" : {
+    "abi-baseline-json" : "/Users/yuanwai/ai/susheng/ios/build/Build/Intermediates.noindex/SushengIME.build/Release-iphoneos/SushengIME.build/Objects-normal/arm64/SushengIME.abi.json",
+    "const-values" : "/Users/yuanwai/ai/susheng/ios/build/Build/Intermediates.noindex/SushengIME.build/Release-iphoneos/SushengIME.build/Objects-normal/arm64/SushengIME-primary.swiftconstvalues",
+    "dependencies" : "/Users/yuanwai/ai/susheng/ios/build/Build/Intermediates.noindex/SushengIME.build/Release-iphoneos/SushengIME.build/Objects-normal/arm64/SushengIME-primary.d",
+    "diagnostics" : "/Users/yuanwai/ai/susheng/ios/build/Build/Intermediates.noindex/SushengIME.build/Release-iphoneos/SushengIME.build/Objects-normal/arm64/SushengIME-primary.dia",
+    "objc-header" : "/Users/yuanwai/ai/susheng/ios/build/Build/Intermediates.noindex/SushengIME.build/Release-iphoneos/SushengIME.build/Objects-normal/arm64/SushengIME-Swift.h",
+    "swiftdoc" : "/Users/yuanwai/ai/susheng/ios/build/Build/Intermediates.noindex/SushengIME.build/Release-iphoneos/SushengIME.build/Objects-normal/arm64/SushengIME.swiftdoc",
+    "swiftmodule" : "/Users/yuanwai/ai/susheng/ios/build/Build/Intermediates.noindex/SushengIME.build/Release-iphoneos/SushengIME.build/Objects-normal/arm64/SushengIME.swiftmodule",
+    "swiftsourceinfo" : "/Users/yuanwai/ai/susheng/ios/build/Build/Intermediates.noindex/SushengIME.build/Release-iphoneos/SushengIME.build/Objects-normal/arm64/SushengIME.swiftsourceinfo"
+  }
+}

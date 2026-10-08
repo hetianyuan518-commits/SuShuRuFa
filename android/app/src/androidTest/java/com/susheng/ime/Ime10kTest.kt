@@ -1,0 +1,109 @@
+package com.susheng.ime
+
+import android.content.res.AssetManager
+import android.graphics.BitmapFactory
+import androidx.test.ext.junit.runners.AndroidJUnit4
+import androidx.test.platform.app.InstrumentationRegistry
+import com.susheng.ime.engine.HandModel
+import com.susheng.ime.engine.ImeRules
+import com.susheng.ime.engine.LexiconBin
+import com.susheng.ime.engine.PinyinEngine
+import com.susheng.ime.engine.WubiTable
+import org.json.JSONArray
+import org.json.JSONObject
+import org.junit.Assert.assertEquals
+import org.junit.Assert.assertTrue
+import org.junit.BeforeClass
+import org.junit.Test
+import org.junit.runner.RunWith
+
+/** 十万条日常用例：拼音首选、五笔首码、手写认字。在模拟器上跑安装包里的同一套引擎。 */
+@RunWith(AndroidJUnit4::class)
+class Ime10kTest {
+    @Test(timeout = 1_800_000)
+    fun pinyin() = check("py") { raw, word ->
+        val rows = PinyinEngine.candidates(
+            raw,
+            "qwerty",
+            bin.shortlist(raw, "qwerty"),
+            emptyList(),
+            sentences = bin.sentences(raw)
+        )
+        rows.firstOrNull()?.commit == word
+    }
+
+    @Test(timeout = 180_000)
+    fun wubi() = check("wb") { code, word ->
+        WubiTable.first(code) == word
+    }
+
+    private var handTop1 = 0
+
+    @Test(timeout = 300_000)
+    fun handwriting() {
+        assertTrue(HandModel.ensure(app))
+        val bad = ArrayList<String>()
+        var count = 0
+        for (index in 0 until cases.length()) {
+            val row = cases.getJSONArray(index)
+            if (row.getString(0) != "hw") continue
+            count++
+            val file = row.getString(1)
+            val word = row.getString(2)
+            val bitmap = testAssets.open("hand/$file").use { BitmapFactory.decodeStream(it) }
+            var got = HandModel.recognize(bitmap, 5)
+            if (word !in got) got = HandModel.recognize(bitmap, 5)
+            bitmap.recycle()
+            if (got.firstOrNull() == word) handTop1++
+            if (word !in got) bad.add("$file $word → ${got.joinToString("")}")
+        }
+        assertEquals(count, 1000)
+        assertEquals(bad.take(12).joinToString("\n"), 0, bad.size)
+        assertTrue("手写首选命中 $handTop1，低于 970", handTop1 >= 970)
+    }
+
+    private fun check(mode: String, hit: (String, String) -> Boolean) {
+        val bad = ArrayList<String>()
+        var count = 0
+        for (index in 0 until cases.length()) {
+            val row = cases.getJSONArray(index)
+            if (row.getString(0) != mode) continue
+            count++
+            val input = row.getString(1)
+            val word = row.getString(2)
+            if (!hit(input, word)) bad.add("$input → 期望 $word")
+        }
+        assertTrue("$mode 只有 $count 条", count > 0)
+        assertEquals(bad.take(12).joinToString("\n"), 0, bad.size)
+    }
+
+    companion object {
+        private lateinit var app: android.content.Context
+        private lateinit var testAssets: AssetManager
+        private lateinit var bin: LexiconBin
+        private lateinit var cases: JSONArray
+
+        @JvmStatic
+        @BeforeClass
+        fun load() {
+            val instrumentation = InstrumentationRegistry.getInstrumentation()
+            app = instrumentation.targetContext
+            testAssets = instrumentation.context.assets
+            val bytes = app.assets.open("lexicon.bin").use { it.readBytes() }
+            val priorText = app.assets.open("char-prior.json").bufferedReader().use { it.readText() }
+            val root = JSONObject(priorText)
+            val prior = HashMap<String, Int>(root.length())
+            val keys = root.keys()
+            while (keys.hasNext()) {
+                val key = keys.next()
+                prior[key] = root.getInt(key)
+            }
+            ImeRules.load(app.assets.open("ime-rules.json").bufferedReader().use { it.readText() })
+            bin = LexiconBin(bytes, prior)
+            app.assets.open("wubi86.txt").bufferedReader().use { WubiTable.load(it.lineSequence()) }
+            val text = instrumentation.context.assets.open("ime-10k-cases.json").bufferedReader().use { it.readText() }
+            cases = JSONArray(text)
+            assertTrue("用例只有 ${cases.length()} 条", cases.length() >= 99900)
+        }
+    }
+}

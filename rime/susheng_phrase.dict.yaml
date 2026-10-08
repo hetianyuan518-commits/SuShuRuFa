@@ -1,0 +1,8 @@
+# 短码词库由客户端同步时生成，提交的是话术正文。
+---
+name: susheng_phrase
+version: "1.0"
+sort: by_weight
+use_preset_vocabulary: false
+...
+开场问候	vhy	100

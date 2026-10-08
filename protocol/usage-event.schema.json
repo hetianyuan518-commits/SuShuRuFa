@@ -1,0 +1,16 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://susheng.local/schema/usage-event.json",
+  "title": "素材使用记录",
+  "description": "只记录哪条官方素材被插入，不包含用户键入的正文。",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["itemId"],
+  "properties": {
+    "itemId": { "type": "string", "minLength": 1 },
+    "surface": {
+      "type": "string",
+      "enum": ["candidate", "script", "tweet", "promo", "lexicon", "image", "shortcut"]
+    }
+  }
+}

@@ -1,0 +1,4 @@
+/Users/yuanwai/ai/susheng/android/app/.cxx/Debug/2i3t3m3g/x86/CMakeFiles/susheng_rime.dir
+/Users/yuanwai/ai/susheng/android/app/.cxx/Debug/2i3t3m3g/x86/CMakeFiles/handrec.dir
+/Users/yuanwai/ai/susheng/android/app/.cxx/Debug/2i3t3m3g/x86/CMakeFiles/edit_cache.dir
+/Users/yuanwai/ai/susheng/android/app/.cxx/Debug/2i3t3m3g/x86/CMakeFiles/rebuild_cache.dir

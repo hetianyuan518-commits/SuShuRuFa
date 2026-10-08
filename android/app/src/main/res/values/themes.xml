@@ -1,0 +1,9 @@
+<resources>
+    <style name="Theme.Susheng" parent="Theme.AppCompat.Light.NoActionBar">
+        <item name="colorPrimary">@color/ink</item>
+        <item name="colorPrimaryDark">@color/ink</item>
+        <item name="colorAccent">@color/cinnabar</item>
+        <item name="android:windowBackground">@color/paper</item>
+        <item name="android:statusBarColor">@color/ink</item>
+    </style>
+</resources>

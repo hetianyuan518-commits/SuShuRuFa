@@ -1,0 +1,43 @@
+# Rime schema
+# encoding: utf-8
+# 短码由键盘壳拦截 v 开头的编码，展开后台下发的话术。
+# 本方案只声明识别规则，避免 v 被拼成普通音节。
+
+schema:
+  schema_id: susheng_phrase
+  name: 苏晟短码
+  version: "1.0"
+
+engine:
+  processors:
+    - ascii_composer
+    - recognizer
+    - key_binder
+    - speller
+    - selector
+    - navigator
+    - express_editor
+  segmentors:
+    - ascii_segmentor
+    - matcher
+    - affix_segmentor@shortcut
+    - punct_segmentor
+    - fallback_segmentor
+  translators:
+    - script_translator@shortcut
+    - punct_translator
+
+shortcut:
+  tag: shortcut
+  prefix: "v"
+  suffix: "'"
+  tips: "〔短码〕"
+  dictionary: susheng_phrase
+
+translator:
+  dictionary: susheng
+  enable_user_dict: false
+
+recognizer:
+  patterns:
+    shortcut: "^v[a-z0-9]*$"

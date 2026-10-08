@@ -1,0 +1,4 @@
+Target dependency graph (2 targets)
+Target 'SushengIME' in project 'SushengIME'
+➜ Explicit dependency on target 'SushengKeyboard' in project 'SushengIME'
+Target 'SushengKeyboard' in project 'SushengIME' (no dependencies)

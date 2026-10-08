@@ -1,0 +1,31 @@
+{
+  "" : {
+    "const-values" : "/Users/yuanwai/ai/susheng/ios/build/Build/Intermediates.noindex/SushengIME.build/Release-iphoneos/SushengKeyboard.build/Objects-normal/arm64/SushengKeyboard-primary.swiftconstvalues",
+    "dependencies" : "/Users/yuanwai/ai/susheng/ios/build/Build/Intermediates.noindex/SushengIME.build/Release-iphoneos/SushengKeyboard.build/Objects-normal/arm64/SushengKeyboard-primary.d",
+    "diagnostics" : "/Users/yuanwai/ai/susheng/ios/build/Build/Intermediates.noindex/SushengIME.build/Release-iphoneos/SushengKeyboard.build/Objects-normal/arm64/SushengKeyboard-primary.dia",
+    "emit-module-dependencies" : "/Users/yuanwai/ai/susheng/ios/build/Build/Intermediates.noindex/SushengIME.build/Release-iphoneos/SushengKeyboard.build/Objects-normal/arm64/SushengKeyboard-primary-emit-module.d",
+    "emit-module-diagnostics" : "/Users/yuanwai/ai/susheng/ios/build/Build/Intermediates.noindex/SushengIME.build/Release-iphoneos/SushengKeyboard.build/Objects-normal/arm64/SushengKeyboard-primary-emit-module.dia",
+    "pch" : "/Users/yuanwai/ai/susheng/ios/build/Build/Intermediates.noindex/SushengIME.build/Release-iphoneos/SushengKeyboard.build/Objects-normal/arm64/SushengKeyboard-primary-Bridging-header.pch",
+    "swift-dependencies" : "/Users/yuanwai/ai/susheng/ios/build/Build/Intermediates.noindex/SushengIME.build/Release-iphoneos/SushengKeyboard.build/Objects-normal/arm64/SushengKeyboard-primary.swiftdeps"
+  },
+  "/Users/yuanwai/ai/susheng/ios/Keyboard/KeyboardViewController.swift" : {
+    "index-unit-output-path" : "/SushengIME.build/Release-iphoneos/SushengKeyboard.build/Objects-normal/arm64/KeyboardViewController.o",
+    "llvm-bc" : "/Users/yuanwai/ai/susheng/ios/build/Build/Intermediates.noindex/SushengIME.build/Release-iphoneos/SushengKeyboard.build/Objects-normal/arm64/KeyboardViewController.bc",
+    "object" : "/Users/yuanwai/ai/susheng/ios/build/Build/Intermediates.noindex/SushengIME.build/Release-iphoneos/SushengKeyboard.build/Objects-normal/arm64/KeyboardViewController.o"
+  },
+  "/Users/yuanwai/ai/susheng/ios/Shared/ContentRepository.swift" : {
+    "index-unit-output-path" : "/SushengIME.build/Release-iphoneos/SushengKeyboard.build/Objects-normal/arm64/ContentRepository.o",
+    "llvm-bc" : "/Users/yuanwai/ai/susheng/ios/build/Build/Intermediates.noindex/SushengIME.build/Release-iphoneos/SushengKeyboard.build/Objects-normal/arm64/ContentRepository.bc",
+    "object" : "/Users/yuanwai/ai/susheng/ios/build/Build/Intermediates.noindex/SushengIME.build/Release-iphoneos/SushengKeyboard.build/Objects-normal/arm64/ContentRepository.o"
+  },
+  "/Users/yuanwai/ai/susheng/ios/Shared/PinyinEngine.swift" : {
+    "index-unit-output-path" : "/SushengIME.build/Release-iphoneos/SushengKeyboard.build/Objects-normal/arm64/PinyinEngine.o",
+    "llvm-bc" : "/Users/yuanwai/ai/susheng/ios/build/Build/Intermediates.noindex/SushengIME.build/Release-iphoneos/SushengKeyboard.build/Objects-normal/arm64/PinyinEngine.bc",
+    "object" : "/Users/yuanwai/ai/susheng/ios/build/Build/Intermediates.noindex/SushengIME.build/Release-iphoneos/SushengKeyboard.build/Objects-normal/arm64/PinyinEngine.o"
+  },
+  "/Users/yuanwai/ai/susheng/ios/Shared/Skin.swift" : {
+    "index-unit-output-path" : "/SushengIME.build/Release-iphoneos/SushengKeyboard.build/Objects-normal/arm64/Skin.o",
+    "llvm-bc" : "/Users/yuanwai/ai/susheng/ios/build/Build/Intermediates.noindex/SushengIME.build/Release-iphoneos/SushengKeyboard.build/Objects-normal/arm64/Skin.bc",
+    "object" : "/Users/yuanwai/ai/susheng/ios/build/Build/Intermediates.noindex/SushengIME.build/Release-iphoneos/SushengKeyboard.build/Objects-normal/arm64/Skin.o"
+  }
+}

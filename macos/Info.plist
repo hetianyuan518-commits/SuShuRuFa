@@ -1,0 +1,58 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+  <key>CFBundleDevelopmentRegion</key>
+  <string>zh-Hans</string>
+  <key>CFBundleExecutable</key>
+  <string>SushengIM</string>
+  <key>CFBundleIdentifier</key>
+  <string>com.susheng.ime.macos</string>
+  <key>CFBundleDisplayName</key>
+  <string>苏晟输入法</string>
+  <key>CFBundleName</key>
+  <string>苏晟输入法</string>
+  <key>CFBundlePackageType</key>
+  <string>APPL</string>
+  <key>CFBundleShortVersionString</key>
+  <string>1.4</string>
+  <key>CFBundleVersion</key>
+  <string>4</string>
+  <key>CFBundleInfoDictionaryVersion</key>
+  <string>6.0</string>
+  <key>LSBackgroundOnly</key>
+  <false/>
+  <key>LSMinimumSystemVersion</key>
+  <string>10.15</string>
+  <key>NSHighResolutionCapable</key>
+  <true/>
+  <key>NSPrincipalClass</key>
+  <string>NSApplication</string>
+  <key>InputMethodConnectionName</key>
+  <string>SushengIM_Connection</string>
+  <key>InputMethodServerControllerClass</key>
+  <string>SushengInputController</string>
+  <key>ComponentInputModeDict</key>
+  <dict>
+    <key>tsInputModeListKey</key>
+    <dict>
+      <key>com.susheng.ime.macos.pinyin</key>
+      <dict>
+        <key>TISInputSourceID</key>
+        <string>com.susheng.ime.macos.pinyin</string>
+        <key>TISIntendedLanguage</key>
+        <string>zh-Hans</string>
+        <key>tsInputModeNameKey</key>
+        <string>苏晟拼音</string>
+        <key>tsInputModeScriptKey</key>
+        <string>smRoman</string>
+        <key>tsInputModeCharacterListKey</key>
+        <array>
+          <string>Simplified Chinese</string>
+          <string>Chinese</string>
+        </array>
+      </dict>
+    </dict>
+  </dict>
+</dict>
+</plist>

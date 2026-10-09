@@ -22,13 +22,19 @@ class ContentRepository(private val context: Context) {
     private val rimeUser = File(context.filesDir, "rime-user").apply { mkdirs() }
     private val rimeShared = File(context.filesDir, "rime-shared").apply { mkdirs() }
     private val pickFile = File(context.filesDir, "pinyin-picks.txt")
+    @Volatile
     private var picks: LinkedHashMap<String, String>? = null
+    private val picksLock = Any()
 
+    @Volatile
     private var lexiconBin: LexiconBin? = null
+    @Volatile
     var items: List<ContentItem> = emptyList()
         private set
+    @Volatile
     var serverVersion: Int = 0
         private set
+    @Volatile
     var epoch: Int = 0
         private set
 
@@ -38,7 +44,12 @@ class ContentRepository(private val context: Context) {
             items = emptyList()
             return
         }
-        val root = JSONObject(packFile.readText())
+        // pack 文件可能截断/损坏；解析失败时回退到空列表，而不是抛异常（后台线程未捕获会杀进程）。
+        val root = runCatching { JSONObject(packFile.readText()) }.getOrNull()
+        if (root == null) {
+            items = emptyList()
+            return
+        }
         serverVersion = root.optInt("serverVersion")
         epoch = root.optInt("epoch")
         items = parseItems(root.optJSONArray("items") ?: JSONArray())
@@ -46,7 +57,7 @@ class ContentRepository(private val context: Context) {
 
     fun session(): JSONObject? {
         if (!sessionFile.exists()) return null
-        return JSONObject(sessionFile.readText())
+        return runCatching { JSONObject(sessionFile.readText()) }.getOrNull()
     }
 
     fun saveSession(server: String, token: String, displayName: String) {
@@ -70,23 +81,29 @@ class ContentRepository(private val context: Context) {
         items = if (full) incoming.filter { !it.deleted } else merge(items, incoming)
         serverVersion = root.optInt("serverVersion")
         epoch = root.optInt("epoch")
-        writePack()
-        downloadAssets(server, token)
+        // 先落地依赖产物（资产、用户词库），全部成功后再持久化 pack，避免中途失败
+        // 造成 content-pack.json 与 assets/rime dict 之间版本不一致。
+        val failedAssets = downloadAssets(server, token)
         writeUserDict()
+        writePack()
         LibrimeBridge.setup(rimeShared.absolutePath, rimeUser.absolutePath)
-        return "已同步到版本 $serverVersion"
+        return if (failedAssets > 0) "已同步到版本 $serverVersion（$failedAssets 个资源下载失败）"
+        else "已同步到版本 $serverVersion"
     }
 
     fun reportUsage(itemId: String, surface: String) {
         val session = session() ?: return
         Thread {
             runCatching {
-                request(session.getString("server"), "/api/usage", session.getString("token"), """{"itemId":"$itemId","surface":"$surface"}""")
+                val payload = JSONObject().put("itemId", itemId).put("surface", surface).toString()
+                request(session.getString("server"), "/api/usage", session.getString("token"), payload)
             }
         }.start()
     }
 
-    fun assetFile(assetId: String): File = File(assetDir, assetId)
+    // assetId 来自服务端，去掉路径分隔符，防止 ../ 越出 assetDir 的路径遍历。
+    fun assetFile(assetId: String): File =
+        File(assetDir, assetId.substringAfterLast('/').substringAfterLast('\\'))
 
     private fun merge(current: List<ContentItem>, incoming: List<ContentItem>): List<ContentItem> {
         val map = current.filter { !it.deleted }.associateBy { it.id }.toMutableMap()
@@ -102,16 +119,26 @@ class ContentRepository(private val context: Context) {
         packFile.writeText(JSONObject().put("serverVersion", serverVersion).put("epoch", epoch).put("items", array).toString())
     }
 
-    private fun downloadAssets(server: String, token: String) {
+    private fun downloadAssets(server: String, token: String): Int {
+        var failed = 0
         for (item in items) {
             val assetId = item.assetId ?: continue
             val file = assetFile(assetId)
             if (file.exists()) continue
-            runCatching {
+            val result = runCatching {
                 val connection = open(server, "/api/assets/$assetId", token)
-                connection.inputStream.use { input -> file.outputStream().use { input.copyTo(it) } }
+                try {
+                    connection.inputStream.use { input -> file.outputStream().use { input.copyTo(it) } }
+                } finally {
+                    connection.disconnect()
+                }
+            }
+            if (result.isFailure) {
+                failed++
+                android.util.Log.w("ContentRepository", "资源下载失败: $assetId", result.exceptionOrNull())
             }
         }
+        return failed
     }
 
     private fun writeUserDict() {
@@ -127,7 +154,10 @@ class ContentRepository(private val context: Context) {
             if (item.deleted || item.type == "image" || item.pinyin.isBlank()) continue
             val word = item.body.replace("\t", " ").replace("\n", "")
             if (word.isBlank()) continue
-            lines.add("$word\t${item.pinyin}\t9000")
+            // pinyin 同样来自服务端，净化掉 tab/换行，避免破坏 YAML 结构或注入额外词条。
+            val pinyin = item.pinyin.replace("\t", " ").replace("\n", "").trim()
+            if (pinyin.isBlank()) continue
+            lines.add("$word\t$pinyin\t9000")
         }
         File(rimeUser, "susheng.user.dict.yaml").writeText(lines.joinToString("\n"))
         copySchemas()
@@ -142,6 +172,7 @@ class ContentRepository(private val context: Context) {
         }
     }
 
+    @Synchronized
     fun warmLexicon() {
         ensureWubi()
         lexiconBin?.warm()
@@ -166,14 +197,16 @@ class ContentRepository(private val context: Context) {
     fun rememberPick(raw: String, word: String) {
         val key = raw.lowercase().filter { it in 'a'..'z' }
         if (key.length < 2 || word.isBlank()) return
-        val map = picks()
-        map.remove(key)
-        map[key] = word
-        while (map.size > 400) {
-            val eldest = map.keys.firstOrNull() ?: break
-            map.remove(eldest)
+        synchronized(picksLock) {
+            val map = picks()
+            map.remove(key)
+            map[key] = word
+            while (map.size > 400) {
+                val eldest = map.keys.firstOrNull() ?: break
+                map.remove(eldest)
+            }
+            pickFile.writeText(map.entries.joinToString("\n") { "${it.key}\t${it.value}" })
         }
-        pickFile.writeText(map.entries.joinToString("\n") { "${it.key}\t${it.value}" })
     }
 
     fun applyPick(raw: String, rows: List<Candidate>): List<Candidate> {
@@ -186,16 +219,19 @@ class ContentRepository(private val context: Context) {
 
     private fun picks(): LinkedHashMap<String, String> {
         picks?.let { return it }
-        val map = LinkedHashMap<String, String>()
-        if (pickFile.exists()) {
-            for (line in pickFile.readLines()) {
-                val tab = line.indexOf('\t')
-                if (tab <= 0) continue
-                map[line.substring(0, tab)] = line.substring(tab + 1)
+        synchronized(picksLock) {
+            picks?.let { return it }
+            val map = LinkedHashMap<String, String>()
+            if (pickFile.exists()) {
+                for (line in pickFile.readLines()) {
+                    val tab = line.indexOf('\t')
+                    if (tab <= 0) continue
+                    map[line.substring(0, tab)] = line.substring(tab + 1)
+                }
             }
+            picks = map
+            return map
         }
-        picks = map
-        return map
     }
 
     private fun loadCharPrior(): Map<String, Int> {
@@ -212,7 +248,9 @@ class ContentRepository(private val context: Context) {
         }.getOrDefault(emptyMap())
     }
 
+    @Synchronized
     private fun loadLexicon() {
+        if (lexiconBin != null) return
         runCatching {
             ImeRules.load(context.assets.open("ime-rules.json").bufferedReader().use { it.readText() })
         }
@@ -223,8 +261,13 @@ class ContentRepository(private val context: Context) {
 
     private fun request(server: String, path: String, token: String?, body: String? = null): String {
         val connection = open(server, path, token, body)
-        val stream = if (connection.responseCode >= 400) connection.errorStream else connection.inputStream
-        return stream.bufferedReader().readText()
+        return try {
+            val stream = (if (connection.responseCode >= 400) connection.errorStream else connection.inputStream)
+                ?: return ""
+            stream.bufferedReader().readText()
+        } finally {
+            connection.disconnect()
+        }
     }
 
     private fun open(server: String, path: String, token: String?, body: String? = null): HttpURLConnection {
@@ -245,20 +288,30 @@ class ContentRepository(private val context: Context) {
         val base = server.trimEnd('/')
         val payload = JSONObject().put("username", username).put("password", password).toString()
         val connection = open(base, "/api/auth/login", null, payload)
-        val text = (if (connection.responseCode >= 400) connection.errorStream else connection.inputStream).bufferedReader().readText()
-        val root = JSONObject(text)
-        if (connection.responseCode >= 400) return root.optString("error", "登录失败")
-        saveSession(base, root.getString("token"), root.getJSONObject("user").optString("displayName"))
-        return "已登录"
+        try {
+            val code = connection.responseCode
+            val stream = if (code >= 400) connection.errorStream else connection.inputStream
+            val text = stream?.bufferedReader()?.readText().orEmpty()
+            val root = if (text.isEmpty()) JSONObject() else JSONObject(text)
+            if (code >= 400) return root.optString("error", "登录失败")
+            saveSession(base, root.getString("token"), root.getJSONObject("user").optString("displayName"))
+            return "已登录"
+        } finally {
+            connection.disconnect()
+        }
     }
 }
 
-private fun parseItems(array: JSONArray): List<ContentItem> = List(array.length()) { index ->
-    val row = array.getJSONObject(index)
+private fun parseItems(array: JSONArray): List<ContentItem> = (0 until array.length()).mapNotNull { index ->
+    // 单个条目缺字段/类型异常时跳过，而不是让整批 load/sync 抛异常中止。
+    val row = array.optJSONObject(index) ?: return@mapNotNull null
+    val id = row.optString("id")
+    val type = row.optString("type")
+    if (id.isEmpty() || type.isEmpty()) return@mapNotNull null
     val aliases = row.optJSONArray("aliases")
     ContentItem(
-        id = row.getString("id"),
-        type = row.getString("type"),
+        id = id,
+        type = type,
         title = row.optString("title"),
         body = row.optString("body"),
         aliases = if (aliases == null) emptyList() else List(aliases.length()) { aliases.getString(it) },

@@ -4,6 +4,9 @@
   --ink: #1b140f;
   --paper: #f3eadb;
   --paper-2: #e7dcc8;
+  --paper-hi: #f7f1e6;
+  --paper-lo: #e9decc;
+  --card: #fbf6ee;
   --cinnabar: #c4372c;
   --gold: #a9782d;
   --moss: #2c4638;
@@ -18,7 +21,7 @@ body {
   font-family: "Outfit", "Songti SC", serif;
   background:
     radial-gradient(circle at 12% 10%, rgba(196, 55, 44, 0.08), transparent 28%),
-    linear-gradient(180deg, #f7f1e6 0%, var(--paper) 40%, #e9decc 100%);
+    linear-gradient(180deg, var(--paper-hi) 0%, var(--paper) 40%, var(--paper-lo) 100%);
 }
 button, input, select, textarea { font: inherit; color: inherit; }
 button { cursor: pointer; }
@@ -60,7 +63,7 @@ button:disabled { opacity: 0.45; cursor: not-allowed; }
 .mast p { max-width: 460px; font-size: 18px; line-height: 1.6; }
 .ticket {
   margin: 32px;
-  background: #fbf6ee;
+  background: var(--card);
   border: 1px solid var(--ink);
   box-shadow: var(--shadow);
   position: relative;
@@ -90,6 +93,10 @@ input, select, textarea {
   border-bottom: 1px solid var(--ink);
   padding: 10px 0;
   outline: none;
+}
+input:focus-visible, select:focus-visible, textarea:focus-visible {
+  outline: 2px solid var(--cinnabar);
+  outline-offset: 2px;
 }
 textarea { border: 1px solid var(--line); min-height: 110px; padding: 10px; resize: vertical; background: rgba(255,255,255,0.35); }
 .row { display: flex; gap: 16px; }
@@ -178,7 +185,8 @@ textarea { border: 1px solid var(--line); min-height: 110px; padding: 10px; resi
 @media (max-width: 860px) {
   .gate, .shell { grid-template-columns: 1fr; }
   .spine { writing-mode: horizontal-tb; letter-spacing: 0.3em; padding: 14px; }
-  .entry { grid-template-columns: 64px 1fr; }
+  .entry { grid-template-columns: 56px 1fr auto; }
+  .usage div { grid-template-columns: 120px 1fr 44px; }
 }
 @keyframes rise {
   from { opacity: 0; transform: translateY(8px); }

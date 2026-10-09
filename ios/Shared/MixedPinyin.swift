@@ -32,11 +32,18 @@ private struct MixEdge {
 }
 
 extension PinyinEngine {
+    // 这些进程级静态缓存（索引、next 表、字先验、spell 选项）此前无同步。
+    // 当前调用者都在主线程，属潜在竞争；统一用非递归 NSLock 守护读写。
+    // 注意：indexFor 构建阶段会调用 loadPrior（内部同样加锁），故必须在释放
+    // cacheLock 之后再构建，避免自死锁。
+    private static let cacheLock = NSLock()
     private static var cachedIndex: MixIndex?
     private static var cachedCount = -1
     private static var cachedHead = ""
+    private static var cachedTail = ""
     private static var nextWords: [String: Set<String>]?
     private static var charPrior: [String: Int]?
+    private static var spellOptionsCache: [String: [String]] = [:]
 
     static func mixedSentences(_ input: String, _ lexicon: [LexEntry]) -> [Candidate] {
         guard input.count <= 24 else { return [] }
@@ -279,6 +286,21 @@ extension PinyinEngine {
     }
 
     private static func mixSpellOptions(_ spell: String, _ weight: [String: Int]) -> [String] {
+        // 结果只取决于 spell 与当前索引的 sylFreq；索引重建时在 indexFor 里整体清空缓存。
+        cacheLock.lock()
+        if let hit = spellOptionsCache[spell] {
+            cacheLock.unlock()
+            return hit
+        }
+        cacheLock.unlock()
+        let result = computeSpellOptions(spell, weight)
+        cacheLock.lock()
+        spellOptionsCache[spell] = result
+        cacheLock.unlock()
+        return result
+    }
+
+    private static func computeSpellOptions(_ spell: String, _ weight: [String: Int]) -> [String] {
         let ranked = syllables.filter { $0.hasPrefix(spell) }.sorted { lhs, rhs in
             let lw = weight[lhs] ?? 0
             let rw = weight[rhs] ?? 0
@@ -344,7 +366,13 @@ extension PinyinEngine {
 
     private static func indexFor(_ lexicon: [LexEntry]) -> MixIndex {
         let head = lexicon.first?.w ?? ""
-        if let cachedIndex, cachedCount == lexicon.count, cachedHead == head { return cachedIndex }
+        let tail = lexicon.last?.w ?? ""
+        cacheLock.lock()
+        if let cachedIndex, cachedCount == lexicon.count, cachedHead == head, cachedTail == tail {
+            cacheLock.unlock()
+            return cachedIndex
+        }
+        cacheLock.unlock()
         var prepared: [MixRow] = []
         prepared.reserveCapacity(lexicon.count)
         for entry in lexicon {
@@ -374,34 +402,60 @@ extension PinyinEngine {
             }
         }
         let built = MixIndex(rows: prepared, exactIni: exact, sylFreq: sylFreq)
+        cacheLock.lock()
         cachedIndex = built
         cachedCount = lexicon.count
         cachedHead = head
+        cachedTail = tail
+        // spell 选项 memo 绑定当前索引的 sylFreq，换索引即失效。
+        spellOptionsCache.removeAll()
+        cacheLock.unlock()
         return built
     }
 
     private static func loadNext() -> [String: Set<String>] {
-        if let nextWords { return nextWords }
+        cacheLock.lock()
+        if let cached = nextWords {
+            cacheLock.unlock()
+            return cached
+        }
+        cacheLock.unlock()
         var table: [String: Set<String>] = [:]
+        var loaded = false
         if let url = Bundle.main.url(forResource: "ime-rules", withExtension: "json"),
            let data = try? Data(contentsOf: url),
            let root = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
            let next = root["next"] as? [String: [String]] {
             for (word, list) in next { table[word] = Set(list) }
+            loaded = true
         }
+        // 仅在资源确实加载成功时写缓存；失败返回空表但不缓存，允许后续调用重试。
+        guard loaded else { return table }
+        cacheLock.lock()
         nextWords = table
+        cacheLock.unlock()
         return table
     }
 
     private static func loadPrior() -> [String: Int] {
-        if let charPrior { return charPrior }
+        cacheLock.lock()
+        if let cached = charPrior {
+            cacheLock.unlock()
+            return cached
+        }
+        cacheLock.unlock()
         var table: [String: Int] = [:]
+        var loaded = false
         if let url = Bundle.main.url(forResource: "char-prior", withExtension: "json"),
            let data = try? Data(contentsOf: url),
            let root = try? JSONSerialization.jsonObject(with: data) as? [String: Int] {
             table = root
+            loaded = true
         }
+        guard loaded else { return table }
+        cacheLock.lock()
         charPrior = table
+        cacheLock.unlock()
         return table
     }
 }

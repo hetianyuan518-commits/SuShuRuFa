@@ -1,3 +1,5 @@
 <resources>
     <string name="app_name">苏晟输入法</string>
+    <!-- 输入法选择器中显示的子类型名称，独立于应用名，便于本地化与准确描述。 -->
+    <string name="ime_subtype_zh_cn">中文（简体）</string>
 </resources>

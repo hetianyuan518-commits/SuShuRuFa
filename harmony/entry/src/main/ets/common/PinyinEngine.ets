@@ -215,7 +215,8 @@ function dedupe(list: Candidate[]): Candidate[] {
   let seen: Record<string, boolean> = {}
   let out: Candidate[] = []
   for (let i = 0; i < list.length; i++) {
-    let key = list[i].itemId ? 'id:' + list[i].itemId : 't:' + list[i].commit
+    // itemId 为空（词库/混拼候选）时把 source 并入文本键，避免不同来源但同文本的候选被误合并。
+    let key = list[i].itemId ? 'id:' + list[i].itemId : list[i].source + ':' + list[i].commit
     if (seen[key]) {
       continue
     }

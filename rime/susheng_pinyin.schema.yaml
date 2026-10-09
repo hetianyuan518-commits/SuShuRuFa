@@ -35,8 +35,11 @@ speller:
   delimiter: " '"
   algebra:
     - erase/^xx$/
+    # 简拼：取音节首字母（zhong → z）。
     - abbrev/^([a-z]).+$/$1/
-    - abbrev/^([a-z]).+([a-z]).+$/$1$2/
+    # 首+尾字母别名（zhong → zg）。旧写法 /.+([a-z]).+$/ 因尾部 `.+` 会迫使 ([a-z])
+    # 锚到倒数第二个字母、且短于 4 字母的音节永远不匹配，改为 `.*([a-z])$` 才能真正取到尾字母。
+    - abbrev/^([a-z]).*([a-z])$/$1$2/
 
 translator:
   dictionary: susheng

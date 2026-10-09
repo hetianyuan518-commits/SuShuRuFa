@@ -62,8 +62,15 @@ static int DigitForKeyCode(unsigned short code) {
         NSPoint mouse = [NSEvent mouseLocation];
         origin = NSMakePoint(mouse.x, mouse.y + 16);
     }
-    CGFloat screen = [NSScreen mainScreen].frame.size.height;
-    if (origin.y + height > screen) origin.y = MAX(40, rect.origin.y - height - 8);
+    // 光标 rect 为全局屏幕坐标，可能落在非主显示器上；只用 mainScreen 高度会在多屏下把面板放到屏外。
+    // 定位实际包含面板原点的屏幕，并针对其 visibleFrame 做翻转与夹制。
+    NSScreen *target = nil;
+    for (NSScreen *s in [NSScreen screens]) {
+        if (NSPointInRect(origin, s.frame)) { target = s; break; }
+    }
+    if (!target) target = [NSScreen mainScreen];
+    NSRect visible = target.visibleFrame;
+    if (origin.y + height > NSMaxY(visible)) origin.y = MAX(NSMinY(visible), rect.origin.y - height - 8);
     [_panel setFrameOrigin:origin];
     [_panel orderFrontRegardless];
 }
@@ -364,9 +371,12 @@ static int DigitForKeyCode(unsigned short code) {
     id<IMKTextInput> client = [self textClient:sender];
     if (_palette) {
         if (index < 0 || index >= (NSInteger)_paletteItems.count) return;
-        [self insertItem:_paletteItems[index] client:client];
+        NSDictionary *picked = _paletteItems[index];
+        BOOL isImage = [picked[@"type"] isEqualToString:@"image"];
+        [self insertItem:picked client:client];
         _palette = nil;
-        [self refresh:client];
+        // 图片插入后 insertItem 已显示「已复制」提示；若再 refresh 会因候选为空立即隐藏面板，提示永远不可见
+        if (!isImage) [self refresh:client];
         return;
     }
     if (index < 0 || index >= (NSInteger)_rows.count) return;
@@ -392,10 +402,15 @@ static int DigitForKeyCode(unsigned short code) {
     [self refresh:client];
 }
 - (void)insertItem:(NSDictionary *)item client:(id<IMKTextInput>)client {
-    if ([item[@"type"] isEqualToString:@"image"] && [item[@"assetId"] isKindOfClass:[NSString class]]) {
-        if ([self copyImage:item[@"assetId"]]) {
+    if ([item[@"type"] isEqualToString:@"image"]) {
+        // copyImage: 失败（图片未下载、assetId 缺失/为空、读取错误）时也要反馈，
+        // 否则选图静默无反应，与 choose: 的「图片还没同步下来」提示不一致。
+        NSString *assetId = [item[@"assetId"] isKindOfClass:[NSString class]] ? item[@"assetId"] : nil;
+        if (assetId.length && [self copyImage:assetId]) {
             [_panel updateHeader:@"已复制图片，请在当前应用粘贴" lines:@[] near:[self cursor:client]];
             [[SushengStore shared] reportUsage:item[@"id"] surface:@"image"];
+        } else {
+            [_panel updateHeader:@"图片还没同步下来" lines:@[] near:[self cursor:client]];
         }
         return;
     }
@@ -417,16 +432,21 @@ static int DigitForKeyCode(unsigned short code) {
     [self refresh:sender];
 }
 - (BOOL)copyImage:(NSString *)assetId {
-    NSData *data = [NSData dataWithContentsOfFile:[[SushengStore shared] assetPath:assetId]];
+    NSString *path = [[SushengStore shared] assetPath:assetId];
+    if (!path) return NO;
+    NSData *data = [NSData dataWithContentsOfFile:path];
     if (!data) return NO;
     NSPasteboard *board = [NSPasteboard generalPasteboard];
     [board clearContents];
-    [board setData:data forType:@"public.png"];
-    return YES;
+    // 用具名常量 NSPasteboardTypePNG（而非字面 @"public.png"），并以 setData: 返回值作为成败依据。
+    return [board setData:data forType:NSPasteboardTypePNG];
 }
 - (NSRect)cursor:(id<IMKTextInput>)client {
     NSRect rect = NSZeroRect;
-    [client attributesForCharacterIndex:0 lineHeightRectangle:&rect];
+    // 应查询实际插入点而非固定索引 0，否则光标不在文首时面板会定位到错误位置（如文档开头）。
+    NSRange selected = [client selectedRange];
+    NSUInteger index = (selected.location == NSNotFound) ? 0 : selected.location;
+    [client attributesForCharacterIndex:index lineHeightRectangle:&rect];
     return rect;
 }
 - (NSString *)paletteTitle:(NSString *)kind {

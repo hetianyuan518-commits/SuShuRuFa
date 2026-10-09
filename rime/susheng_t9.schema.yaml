@@ -37,5 +37,5 @@ speller:
 translator:
   dictionary: susheng
   enable_user_dict: true
-  preedit_format:
-    - xlit/23456789/abc def ghi jkl mno pqrs tuv wxyz/
+  # 不使用 preedit_format：xlit 只能 1:1 字符转写，无法把一个数字展开成对应的字母组；
+  # 强行映射会把数字误渲染成无意义的字母/空格。九键直接按原样显示输入的数字即可。

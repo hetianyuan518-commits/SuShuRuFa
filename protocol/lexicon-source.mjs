@@ -413,6 +413,9 @@ zun 尊
 zuo 做
 `.trim()
 
+// phrases 权重为原始语感分（大致 1000–2600，越大越常用）。它不直接参与排序：
+// build-lexicon.mjs 会将其按 Math.max(320, Math.min(470, round(freq/6))) 压缩到 320–470 区间；
+// 且候选只在“相同输入拼音”下相互竞争，不同读音的词不会彼此排序。
 export const phrases = [
   ['你好', 'ni hao', 2200],
   ['你好吗', 'ni hao ma', 1800],
@@ -493,6 +496,9 @@ export const phrases = [
   ['再见', 'zai jian', 1200],
   ['开心', 'kai xin', 1100],
   ['今天的直播', 'jin tian de zhi bo', 1000],
+  // 以下为分词消歧测试 fixture（供 pinyin-engine.test.mjs 的 h'h'j / er'wei'h 等用例使用）。
+  // 它们与常用问候语拼音不同（如 黑胡椒 hei hu jiao vs 你好 ni hao），不会在问候输入下竞争；
+  // 权重高低只决定同一缩写输入下的 top-1 顺序，故不可随意下调，否则测试用例的消歧顺序会失效。
   ['黑胡椒', 'hei hu jiao', 2600],
   ['还回家', 'hai hui jia', 2400],
   ['哈哈镜', 'ha ha jing', 2300],
@@ -530,7 +536,6 @@ export const phrases = [
   ['同事', 'tong shi', 1300],
   ['合同', 'he tong', 1200],
   ['发票', 'fa piao', 1200],
-  ['喜欢', 'xi huan', 1500],
   ['在吗', 'zai ma', 1600],
   ['不好意思', 'bu hao yi si', 1500],
   ['没关系', 'mei guan xi', 1400],

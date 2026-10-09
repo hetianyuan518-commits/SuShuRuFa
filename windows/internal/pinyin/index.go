@@ -24,19 +24,43 @@ type lexIndex struct {
 
 var (
 	indexMu sync.Mutex
-	indexOf = map[*LexEntry]*lexIndex{}
+	indexOf = map[indexCacheKey]*lexIndex{}
 )
 
+// indexCacheKey 以词库底层数组首元素指针 + 长度为键。
+// 不变量：调用方必须传入稳定的全局词库（同一份、构建后不再原地修改 entry）。
+// 把长度纳入键可区分共享首元素的子切片（如 lex[:n]）；原地修改 F 等字段
+// 无法被此键感知，属调用方违约。空词库统一映射到零值键。
+type indexCacheKey struct {
+	ptr *LexEntry
+	n   int
+}
+
 func indexFor(lexicon []LexEntry) *lexIndex {
-	indexMu.Lock()
-	defer indexMu.Unlock()
-	var key *LexEntry
+	var key indexCacheKey
 	if len(lexicon) > 0 {
-		key = &lexicon[0]
+		key = indexCacheKey{ptr: &lexicon[0], n: len(lexicon)}
 	}
+	indexMu.Lock()
 	if got := indexOf[key]; got != nil {
+		indexMu.Unlock()
 		return got
 	}
+	indexMu.Unlock()
+	// 构建代价高（音节解析、两次排序、五张映射）且结果不可变；在锁外构建，
+	// 避免缓存命中与其他词库查询被长时间串行化。竞态下可能重复构建，仅一份入缓存。
+	idx := buildIndex(lexicon)
+	indexMu.Lock()
+	if got := indexOf[key]; got != nil {
+		indexMu.Unlock()
+		return got
+	}
+	indexOf[key] = idx
+	indexMu.Unlock()
+	return idx
+}
+
+func buildIndex(lexicon []LexEntry) *lexIndex {
 	rows := make([]prepared, 0, len(lexicon))
 	for _, entry := range lexicon {
 		syls := syllablesOf(entry.P)
@@ -81,7 +105,6 @@ func indexFor(lexicon []LexEntry) *lexIndex {
 			pushOneRune(idx.head, chars[0], row, 100)
 		}
 	}
-	indexOf[key] = idx
 	return idx
 }
 
@@ -246,13 +269,24 @@ func splitParts(raw string) []string {
 }
 
 func segmentAll(input string, limit int) []seg {
+	// 长度上限：matchingLexicon 直接喂入用户输入的完整字母，Candidates 不设长度上限，
+	// 粘贴长串会进入这里。超过 96 字母直接放弃（正常逐键输入远短于此）。
+	if len(input) == 0 || len(input) > 96 {
+		return nil
+	}
 	var found []seg
 	var acc []string
+	// 步数预算：当输入以不可切分的尾巴结尾（如 "ni…jjj"）时，found 永不增长，
+	// limit 无法剪枝，前缀的所有切分会被指数级枚举（分支因子 2–3）。用访问
+	// 计数硬性兜底，保证终止；正常短输入远低于此预算，行为不变。
+	const maxSteps = 4096
+	steps := 0
 	var rec func(int)
 	rec = func(i int) {
-		if len(found) >= limit {
+		if len(found) >= limit || steps >= maxSteps {
 			return
 		}
+		steps++
 		if i == len(input) {
 			found = append(found, seg{syls: append([]string(nil), acc...)})
 			return
@@ -271,7 +305,7 @@ func segmentAll(input string, limit int) []seg {
 			acc = append(acc, piece)
 			rec(i + length)
 			acc = acc[:len(acc)-1]
-			if len(found) >= limit {
+			if len(found) >= limit || steps >= maxSteps {
 				return
 			}
 		}

@@ -33,6 +33,13 @@ func sentenceCandidates(lexicon []LexEntry, input string) []Candidate {
 	for _, row := range best {
 		out = append(out, row)
 	}
+	// best 是 map，迭代顺序不确定；按分数降序、文本升序稳定排序，保证相同输入得到相同候选顺序。
+	sort.Slice(out, func(i, j int) bool {
+		if out[i].Score != out[j].Score {
+			return out[i].Score > out[j].Score
+		}
+		return out[i].Text < out[j].Text
+	})
 	return out
 }
 
@@ -146,6 +153,19 @@ func decodeSegmentation(rows []prepared, syls []string, partial string, inputLen
 				break
 			}
 		}
+	}
+	// beam[n] 是终点位，循环内 >6 剪枝不覆盖它；长输入下可能累积上千状态，
+	// 而 sortPaths 是 O(k²) 插入排序且处于逐键交互路径。先用 O(k log k) 全序
+	// （分数降序、文本升序）排序并截断到 poolCap，再交给 sortPaths 精排。
+	const poolCap = 64
+	if len(pool) > poolCap {
+		sort.Slice(pool, func(i, j int) bool {
+			if pool[i].score != pool[j].score {
+				return pool[i].score > pool[j].score
+			}
+			return pool[i].text < pool[j].text
+		})
+		pool = pool[:poolCap]
 	}
 	sortPaths(pool)
 	var out []Candidate
@@ -291,7 +311,11 @@ func init() {
 	for _, r := range []rune("的了是在有要就都也还把被给让我你他她不没很会能到去来和与或而这那个着过吗呢吧啊") {
 		grammarChars[r] = true
 	}
-	_ = json.Unmarshal(charPriorJSON, &charPrior)
+	// char-prior.json 是 //go:embed 的嵌入资产：解析失败是确定性的（重试无意义），
+	// 且会导致字频先验全空、候选质量静默劣化。此处直接 panic 以在启动阶段暴露。
+	if err := json.Unmarshal(charPriorJSON, &charPrior); err != nil {
+		panic("pinyin: invalid char-prior.json: " + err.Error())
+	}
 }
 
 var initialNext = map[string]map[string]bool{
@@ -564,7 +588,6 @@ func matchMixed(rows []prepared, spells []string, budget *int, weight map[string
 	}
 	return bag
 }
-
 
 func sortIni(rows []iniState) {
 	for i := 1; i < len(rows); i++ {

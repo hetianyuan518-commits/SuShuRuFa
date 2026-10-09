@@ -1,4 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <paths>
-    <files-path name="assets" path="assets/" />
+    <!-- files-path 相对于 Context.getFilesDir() 解析（并非 APK 内的 assets/ 资源目录）。
+         该目录仅存放同步下来的内容图片，经 FileProvider 生成 content:// URI 分享给目标编辑器。
+         name 只作为 URI 路径段标识，用 shared_assets 以避免与 context.assets 混淆。 -->
+    <files-path name="shared_assets" path="assets/" />
 </paths>

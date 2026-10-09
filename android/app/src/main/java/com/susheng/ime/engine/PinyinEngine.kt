@@ -45,7 +45,11 @@ object PinyinEngine {
             for (len in 1..syl.length) add(syl.substring(0, len))
         }
     }
-    private val startingCache = HashMap<String, List<String>>()
+    // PinyinEngine 是单例，可能同时被 IME 服务与后台/测试线程访问；
+    // 用 ConcurrentHashMap 避免并发 getOrPut 损坏 HashMap（丢更新 / resize 死循环）。
+    private val startingCache = java.util.concurrent.ConcurrentHashMap<String, List<String>>()
+    // 热路径反复用到，提为常量避免每次重新编译正则。
+    private val nonAsciiLetters = Regex("[^a-z]")
     private val t9 = mapOf(
         'a' to '2', 'b' to '2', 'c' to '2', 'd' to '3', 'e' to '3', 'f' to '3',
         'g' to '4', 'h' to '4', 'i' to '4', 'j' to '5', 'k' to '5', 'l' to '5',
@@ -69,7 +73,7 @@ object PinyinEngine {
         if (input.startsWith("v")) {
             for (item in pool) {
                 val shortcut = item.shortcut.lowercase()
-                if (shortcut.isNotEmpty() && (shortcut == input || shortcut.startsWith(input))) {
+                if (shortcut.isNotEmpty() && shortcut.startsWith(input)) {
                     rows.add(official(item, 2_000_000 - shortcut.length))
                 }
             }
@@ -83,11 +87,12 @@ object PinyinEngine {
                 rows.add(official(item, 1_500_000))
             }
         }
+        // letters 只依赖 input，是循环不变量，提到循环外算一次，避免每条词表项重复编译正则。
+        val letters = input.replace(nonAsciiLetters, "")
         for (entry in lexicon) {
             val typed = scorePinyin(input, mode, entry.pinyin)
             if (typed <= 0) continue
             var score = typed + entry.freq
-            val letters = input.replace(Regex("[^a-z]"), "")
             if (mode != "t9" && letters.length >= 12 && entry.freq >= 300 && extendsByOneSyllable(letters, entry.pinyin)) {
                 score += 800
             }
@@ -166,7 +171,7 @@ object PinyinEngine {
         return out
     }
 
-    private fun compact(pinyin: String) = pinyin.lowercase().replace(Regex("[^a-z]"), "")
+    private fun compact(pinyin: String) = pinyin.lowercase().replace(nonAsciiLetters, "")
 
     private fun toT9(compact: String) = buildString {
         for (ch in compact) append(t9[ch] ?: "")

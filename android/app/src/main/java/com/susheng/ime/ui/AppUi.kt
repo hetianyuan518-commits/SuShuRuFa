@@ -60,7 +60,7 @@ internal fun logoView(context: Context, sizeDp: Int): ImageView {
     return ImageView(context).apply {
         setImageResource(R.drawable.susheng_logo)
         scaleType = ImageView.ScaleType.FIT_CENTER
-        contentDescription = "苏晟"
+        contentDescription = context.getString(R.string.app_name)
         layoutParams = LinearLayout.LayoutParams(dpi(context, sizeDp), dpi(context, sizeDp))
     }
 }
@@ -80,27 +80,42 @@ internal fun pill(context: Context, text: String, bg: Int, fg: Int, click: () ->
 
 internal fun linkText(full: String, labels: List<Pair<String, () -> Unit>>, color: Int): SpannableString {
     val span = SpannableString(full)
+    var cursor = 0
+    val applied = ArrayList<IntRange>()
     labels.forEach { (label, action) ->
-        val start = full.indexOf(label)
+        if (label.isEmpty()) return@forEach
+        // 从游标之后按出现顺序查找，避免 indexOf 总取首个匹配而命中更早文本里的子串（如「协议」命中「用户协议」内部）。
+        val start = full.indexOf(label, cursor)
         if (start < 0) return@forEach
+        val end = start + label.length
+        // 跳过与已应用 span 重叠的区间，防止两个 ClickableSpan 交叠导致其一不可点。
+        if (applied.any { start < it.last + 1 && it.first < end }) {
+            cursor = start + 1
+            return@forEach
+        }
         span.setSpan(object : ClickableSpan() {
             override fun onClick(widget: View) = action()
             override fun updateDrawState(ds: TextPaint) {
                 ds.color = color
                 ds.isUnderlineText = false
             }
-        }, start, start + label.length, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE)
+        }, start, end, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE)
+        applied.add(start until end)
+        cursor = end
     }
     return span
 }
 
+// 注意：该覆写仅对「未显式传 LayoutParams」添加的子 view 生效（返回 MATCH_PARENT 宽的默认参数）；
+// 调用方自行传入 LayoutParams（如 fill() 带 margin）时会绕过这一行为，不保证所有子 view 等宽。
 private class MatchColumn(context: Context) : LinearLayout(context) {
     init { orientation = VERTICAL }
     override fun generateDefaultLayoutParams() = LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.WRAP_CONTENT)
 }
 
 internal fun linkedParagraph(context: Context, full: String, labels: List<Pair<String, () -> Unit>>): TextView {
-    return tv(context, full, 14f, 0xFF5C6370.toInt()).apply {
+    // tv() 会先 setText，这里传空串避免与下方 SpannableString 重复 setText 与多余布局失效。
+    return tv(context, "", 14f, 0xFF5C6370.toInt()).apply {
         text = linkText(full, labels, ORANGE)
         movementMethod = LinkMovementMethod.getInstance()
         highlightColor = 0x00000000

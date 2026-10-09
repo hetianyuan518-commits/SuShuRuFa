@@ -72,14 +72,24 @@ internal class ImeChrome(private val ime: SushengInputMethodService) {
     private var candidateBar: LinearLayout? = null
     private var composingLine: TextView? = null
     private var candidateRow: LinearLayout? = null
-    private var extraRow: LinearLayout? = null
     private val chipPool = ArrayList<TextView>()
-    private var expandCandidates = false
     private var shownRaw = ""
     private var candidateGeneration = 0
     private val density get() = ime.resources.displayMetrics.density
     private fun px(value: Int) = (value * density).toInt()
     private fun px(value: Float) = (value * density).toInt()
+
+    private fun decodeSampled(path: String, reqSize: Int): Bitmap? {
+        val bounds = BitmapFactory.Options().apply { inJustDecodeBounds = true }
+        BitmapFactory.decodeFile(path, bounds)
+        if (bounds.outWidth <= 0 || bounds.outHeight <= 0) return null
+        var sample = 1
+        while (bounds.outWidth / (sample * 2) >= reqSize && bounds.outHeight / (sample * 2) >= reqSize) {
+            sample *= 2
+        }
+        val options = BitmapFactory.Options().apply { inSampleSize = sample }
+        return BitmapFactory.decodeFile(path, options)
+    }
 
     private data class Palette(
         val bg: Int,
@@ -130,12 +140,10 @@ internal class ImeChrome(private val ime: SushengInputMethodService) {
 
     fun updateCandidates() {
         val row = candidateRow ?: return
-        val extra = extraRow ?: return
         val colors = palette()
         val raw = ime.rawInput()
         if (raw != shownRaw) {
             shownRaw = raw
-            expandCandidates = false
         }
         val list = ime.shownCandidates()
         val bar = candidateBar
@@ -168,22 +176,6 @@ internal class ImeChrome(private val ime: SushengInputMethodService) {
             chip.typeface = if (index == 0) android.graphics.Typeface.DEFAULT_BOLD else android.graphics.Typeface.DEFAULT
             chip.setOnClickListener {
                 ime.buzz(chip)
-                ime.chooseCandidate(candidate)
-            }
-        }
-        extra.removeAllViews()
-        extra.visibility = if (expandCandidates && list.size > 6) View.VISIBLE else View.GONE
-        if (expandCandidates) {
-            list.drop(6).take(12).forEach { candidate -> extra.addView(candidateChip(candidate, false, colors)) }
-        }
-    }
-
-    private fun candidateChip(candidate: com.susheng.ime.engine.Candidate, primary: Boolean, colors: Palette): TextView {
-        return label(candidate.text, if (primary) 22f else 18f, if (primary) colors.accent else colors.text).apply {
-            if (primary) typeface = android.graphics.Typeface.DEFAULT_BOLD
-            setPadding(px(10), px(4), px(10), px(4))
-            setOnClickListener {
-                ime.buzz(this)
                 ime.chooseCandidate(candidate)
             }
         }
@@ -240,17 +232,11 @@ internal class ImeChrome(private val ime: SushengInputMethodService) {
             gravity = Gravity.CENTER_VERTICAL
         }
         scroller.addView(line)
-        val extra = row(Color.TRANSPARENT).apply {
-            gravity = Gravity.CENTER_VERTICAL
-            visibility = View.GONE
-        }
         bar.addView(composing)
         bar.addView(scroller)
-        bar.addView(extra)
         candidateBar = bar
         composingLine = composing
         candidateRow = line
-        extraRow = extra
         chipPool.clear()
         return bar
     }
@@ -421,6 +407,8 @@ internal class ImeChrome(private val ime: SushengInputMethodService) {
         val pad = HandPad(ime, colors.text, { token, ink -> ime.onHandSample(token, ink) }) {
             ime.onHandNext()
         }
+        // 覆盖前取消旧 pad 的挂起任务，避免旧 recognize/idleClear 在替换后触发
+        handPad?.clear()
         handPad = pad
         val frame = FrameLayout(ime).apply {
             background = keyFace(colors.key)
@@ -641,7 +629,7 @@ internal class ImeChrome(private val ime: SushengInputMethodService) {
             isSoundEffectsEnabled = false
             layoutParams = LinearLayout.LayoutParams(0, keyHeight(), weight).apply { setMargins(px(3), px(3), px(3), px(3)) }
         }
-        if (ime.isShift() && text == "⇧") key.setTextColor(ime.let { colors.accent })
+        if (ime.isShift() && text == "⇧") key.setTextColor(colors.accent)
         if (repeat) bindRepeat(key, action) else key.bindKey(action, onLong)
         return key
     }
@@ -898,7 +886,7 @@ internal class ImeChrome(private val ime: SushengInputMethodService) {
 
     private fun emojiBody(colors: Palette): View {
         val filtered = emojiItems().filter { query.isEmpty() || it.label.contains(query, true) || it.words.contains(query, true) }
-        if (emojiTab == 2) return stickerGrid(colors, filtered)
+        if (emojiTab == 2) return stickerGrid(colors)
         val grid = column(Color.TRANSPARENT).apply { setPadding(px(8), px(4), px(8), px(8)) }
         if (filtered.isEmpty()) {
             grid.addView(label("没有匹配的内容", 14f, colors.muted).apply { setPadding(px(12), px(24), px(12), px(12)) })
@@ -923,7 +911,7 @@ internal class ImeChrome(private val ime: SushengInputMethodService) {
         return grid
     }
 
-    private fun stickerGrid(colors: Palette, items: List<EmojiItem>): View {
+    private fun stickerGrid(colors: Palette): View {
         val grid = column(Color.TRANSPARENT).apply { setPadding(px(12), px(8), px(12), px(8)) }
         val stickers = ime.itemsOf(setOf("image")).filter { query.isEmpty() || it.title.contains(query, true) }
         if (stickers.isEmpty()) {
@@ -936,7 +924,6 @@ internal class ImeChrome(private val ime: SushengInputMethodService) {
             repeat(4 - lineItems.size) { line.addView(View(ime), LinearLayout.LayoutParams(0, 1, 1f)) }
             grid.addView(line)
         }
-        if (items.isEmpty()) Unit
         return grid
     }
 
@@ -953,7 +940,7 @@ internal class ImeChrome(private val ime: SushengInputMethodService) {
             layoutParams = LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, px(72))
         }
         ime.assetFile(item)?.let { file ->
-            image.setImageBitmap(BitmapFactory.decodeFile(file.absolutePath))
+            decodeSampled(file.absolutePath, px(72))?.let { bmp -> image.setImageBitmap(bmp) }
         }
         cell.addView(image)
         cell.addView(label(item.title, 11f, colors.muted).apply { setPadding(0, px(4), 0, 0) })
@@ -1220,6 +1207,13 @@ internal class ImeChrome(private val ime: SushengInputMethodService) {
                 else -> false
             }
         }
+        // view 被 detach（键盘重建/隐藏）时取消挂起的重复任务，避免 Handler 泄漏与 action 持续执行
+        view.addOnAttachStateChangeListener(object : View.OnAttachStateChangeListener {
+            override fun onViewAttachedToWindow(v: View) = Unit
+            override fun onViewDetachedFromWindow(v: View) {
+                handler.removeCallbacks(task)
+            }
+        })
     }
 
     private fun View.clipCircle() {
@@ -1421,6 +1415,13 @@ private class HandPad(
         handler.removeCallbacks(recognize)
         handler.removeCallbacks(idleClear)
         clearInk()
+    }
+
+    override fun onDetachedFromWindow() {
+        super.onDetachedFromWindow()
+        // 键盘重建/隐藏时取消挂起的识别与清屏任务，避免 detach 后回调仍触发
+        handler.removeCallbacks(recognize)
+        handler.removeCallbacks(idleClear)
     }
 
     private fun clearInk() {

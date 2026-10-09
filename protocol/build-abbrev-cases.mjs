@@ -10,6 +10,9 @@ import { dailyPhrases } from './lexicon-daily.mjs'
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..')
 
+// 只取词频不低于此阈值的短语派生用例：太低频的说法不值得当“没打全”的期望答案。
+const MIN_FREQ = 470
+
 const seen = new Map()
 for (const [word, pinyin, freq] of [...chatPhrases, ...dailyPhrases]) {
   const syls = pinyin.split(' ')
@@ -18,7 +21,7 @@ for (const [word, pinyin, freq] of [...chatPhrases, ...dailyPhrases]) {
   const prev = seen.get(word)
   if (!prev || freq > prev.freq) seen.set(word, { word, syls, freq })
 }
-const phrases = [...seen.values()].filter((row) => row.freq >= 470).sort((a, b) => b.freq - a.freq || (a.word < b.word ? -1 : 1))
+const phrases = [...seen.values()].filter((row) => row.freq >= MIN_FREQ).sort((a, b) => b.freq - a.freq || (a.word < b.word ? -1 : 1))
 
 const cases = []
 const used = new Set()
@@ -42,7 +45,7 @@ for (const { word, syls } of phrases) {
   }
 }
 
-const json = '[\n' + cases.map((row) => JSON.stringify(row)).join(',\n') + '\n]\n'
+const json = cases.length ? '[\n' + cases.map((row) => JSON.stringify(row)).join(',\n') + '\n]\n' : '[]\n'
 for (const target of [join(root, 'protocol/pinyin-abbrev-cases.json'), join(root, 'android/app/src/androidTest/assets/pinyin-abbrev-cases.json')]) {
   mkdirSync(dirname(target), { recursive: true })
   writeFileSync(target, json)

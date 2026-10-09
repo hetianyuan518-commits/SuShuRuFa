@@ -13,7 +13,8 @@ struct Index {
   @State tab: string = 'store'
   @State legalTitle: string = '隐私政策'
   @State legalBack: string = 'privacy'
-  @State skinId: number = 0
+  @State @Watch('onSkinIdChange') skinId: number = 0
+  @State skinName: string = skinById(0).name
   @State owned: number[] = [0]
   @State server: string = 'http://127.0.0.1:8787'
   @State username: string = ''
@@ -23,17 +24,21 @@ struct Index {
   @State phrases: ContentItem[] = []
 
   async aboutToAppear() {
-    let context = getContext(this) as common.UIAbilityContext
-    if (await privacyAccepted(context)) {
-      this.screen = 'home'
+    try {
+      let context = getContext(this) as common.UIAbilityContext
+      if (await privacyAccepted(context)) {
+        this.screen = 'home'
+      }
+      let skin = await currentSkin(context)
+      this.skinId = skin.id
+      this.owned = await ownedSkins(context)
+      let pref = await dataPreferences.getPreferences(context, 'susheng')
+      this.server = await pref.get('server', this.server) as string
+      this.displayName = await pref.get('displayName', '苏晟用户') as string
+      this.phrases = await readPack(context)
+    } catch (e) {
+      // 首屏加载失败时保留默认状态，避免未处理 rejection 导致白屏/崩溃。
     }
-    let skin = await currentSkin(context)
-    this.skinId = skin.id
-    this.owned = await ownedSkins(context)
-    let pref = await dataPreferences.getPreferences(context, 'susheng')
-    this.server = await pref.get('server', this.server) as string
-    this.displayName = await pref.get('displayName', '苏晟用户') as string
-    this.phrases = await readPack(context)
   }
 
   build() {
@@ -108,7 +113,7 @@ struct Index {
               this.legalBack = 'privacy'
               this.screen = 'legal'
             })
-        })
+        }, (title: string) => title)
       }
       .width('100%')
       .padding(24)
@@ -196,7 +201,7 @@ struct Index {
         Text('装扮商城').fontSize(22).fontWeight(FontWeight.Bold).margin({ bottom: 12 })
         ForEach(skins, (skin: Skin) => {
           this.skinCard(skin)
-        })
+        }, (skin: Skin) => 'skin-' + skin.id.toString())
         Text('套装').fontSize(18).fontWeight(FontWeight.Bold).margin({ top: 8, bottom: 8 })
         ForEach(sets, (item: SkinSet) => {
           Column() {
@@ -214,7 +219,7 @@ struct Index {
           .margin({ bottom: 10 })
           .backgroundColor('#FFFFFF')
           .borderRadius(14)
-        })
+        }, (item: SkinSet) => 'set-' + item.name)
       }
       .width('100%')
       .padding(16)
@@ -273,7 +278,7 @@ struct Index {
           .backgroundColor('#FFFFFF')
           .borderRadius(14)
           .alignItems(HorizontalAlign.Start)
-        })
+        }, (item: ContentItem) => item.id)
       }
       .width('100%')
       .padding(16)
@@ -289,7 +294,7 @@ struct Index {
           Image($r('app.media.app_icon')).width(44).height(44)
           Column() {
             Text(this.displayName).fontSize(18).fontWeight(FontWeight.Bold)
-            Text(`当前皮肤 · ${skinById(this.skinId).name}`).fontSize(13).fontColor('#8A9099').margin({ top: 4 })
+            Text(`当前皮肤 · ${this.skinName}`).fontSize(13).fontColor('#8A9099').margin({ top: 4 })
           }
           .alignItems(HorizontalAlign.Start)
           .margin({ left: 12 })
@@ -303,7 +308,7 @@ struct Index {
           if (this.owned.indexOf(skin.id) >= 0) {
             this.skinCard(skin)
           }
-        })
+        }, (skin: Skin) => 'owned-' + skin.id.toString())
         this.rowLink('设置', '账号、同步和试打', () => { this.screen = 'settings' })
         this.rowLink('用户服务协议', '', () => {
           this.legalTitle = '用户服务协议'
@@ -404,10 +409,44 @@ struct Index {
   }
 
   async doLogin() {
+    // 默认回环地址（本地内容台）可用 http；但把凭据发往非本机的明文 http 主机存在泄露风险，
+    // 登录前校验：非 https 且主机不是本机/回环时拒绝并提示，避免明文传输账号密码。
+    if (this.cleartextCredentialRisk(this.server)) {
+      this.status = '为保护账号密码，非本机地址请使用 https://'
+      return
+    }
     let context = getContext(this) as common.UIAbilityContext
     this.status = await login(context, this.server, this.username, this.password)
     let pref = await dataPreferences.getPreferences(context, 'susheng')
     this.displayName = await pref.get('displayName', this.displayName) as string
+  }
+
+  cleartextCredentialRisk(server: string): boolean {
+    let lower = server.trim().toLowerCase()
+    if (lower.startsWith('https://')) {
+      return false
+    }
+    let noScheme = lower.startsWith('http://') ? lower.substring(7) : lower
+    let host: string
+    if (noScheme.startsWith('[')) {
+      let end = noScheme.indexOf(']')
+      host = end >= 0 ? noScheme.substring(0, end + 1) : noScheme
+    } else {
+      host = noScheme
+      for (let i = 0; i < noScheme.length; i++) {
+        let c = noScheme.charAt(i)
+        if (c === '/' || c === ':' || c === '?' || c === '#') {
+          host = noScheme.substring(0, i)
+          break
+        }
+      }
+    }
+    let local = ['127.0.0.1', 'localhost', '::1', '[::1]', '0.0.0.0']
+    return local.indexOf(host) < 0
+  }
+
+  onSkinIdChange() {
+    this.skinName = skinById(this.skinId).name
   }
 
   async doSync() {

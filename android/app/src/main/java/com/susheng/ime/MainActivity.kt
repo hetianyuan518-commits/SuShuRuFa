@@ -32,11 +32,12 @@ class MainActivity : AppCompatActivity() {
         @Suppress("DEPRECATION")
         window.decorView.systemUiVisibility = android.view.View.SYSTEM_UI_FLAG_LIGHT_STATUS_BAR
         repo = ContentRepository(this)
-        repo.loadLocal()
         if (savedInstanceState != null) {
-            screen = runCatching { Screen.valueOf(savedInstanceState.getString("screen", Screen.GUIDE.name)!!) }.getOrDefault(Screen.GUIDE)
-            tab = runCatching { HomeTab.valueOf(savedInstanceState.getString("tab", HomeTab.STORE.name)!!) }.getOrDefault(HomeTab.STORE)
-            legalTitle = savedInstanceState.getString("legal", legalTitle) ?: legalTitle
+            screen = runCatching { Screen.valueOf(savedInstanceState.getString("screen", Screen.GUIDE.name)) }.getOrDefault(Screen.GUIDE)
+            tab = runCatching { HomeTab.valueOf(savedInstanceState.getString("tab", HomeTab.STORE.name)) }.getOrDefault(HomeTab.STORE)
+            legalTitle = savedInstanceState.getString("legal", legalTitle)
+            leftForSystem = savedInstanceState.getBoolean("leftForSystem")
+            obscured = savedInstanceState.getBoolean("obscured")
         } else {
             screen = openingScreen()
         }
@@ -59,17 +60,33 @@ class MainActivity : AppCompatActivity() {
                     else -> {
                         isEnabled = false
                         onBackPressedDispatcher.onBackPressed()
+                        // 默认返回未被消费（Activity 未 finish）时重新启用，避免后续返回键绕过状态机。
+                        isEnabled = true
                     }
                 }
             }
         })
         show()
+        // 词表/内容包的磁盘解析放到后台线程，避免主线程阻塞导致掉帧/ANR；
+        // 加载完成后仅在依赖 repo 的界面（HOME/SETTINGS）重绘。
+        loadRepoAsync()
+    }
+
+    private fun loadRepoAsync() {
+        Thread {
+            repo.loadLocal()
+            runOnUiThread {
+                if (!isFinishing && (screen == Screen.HOME || screen == Screen.SETTINGS)) show()
+            }
+        }.start()
     }
 
     override fun onSaveInstanceState(outState: Bundle) {
         outState.putString("screen", screen.name)
         outState.putString("tab", tab.name)
         outState.putString("legal", legalTitle)
+        outState.putBoolean("leftForSystem", leftForSystem)
+        outState.putBoolean("obscured", obscured)
         super.onSaveInstanceState(outState)
     }
 
@@ -132,7 +149,13 @@ class MainActivity : AppCompatActivity() {
             leftForSystem = true
         }
         val jump = if (enable) ImeSystem.openEnable(this) else ImeSystem.openSwitch(this)
-        if (jump != ImeSystem.Jump.INPUT) showImeGuide()
+        if (jump == ImeSystem.Jump.NONE) {
+            // 未能真正跳转系统设置，回滚待确认隐私的挂起状态，避免后续无关的失焦误触发 PRIVACY。
+            leftForSystem = false
+            KeyboardPrefs.clearAwaitPrivacy(this)
+        } else if (jump != ImeSystem.Jump.INPUT) {
+            showImeGuide()
+        }
     }
 
     private fun showImeGuide() {
@@ -157,9 +180,9 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun openSettings() {
-        repo.loadLocal()
         screen = Screen.SETTINGS
         show()
+        loadRepoAsync()
     }
 
     private fun openDoc(title: String, back: Screen) {

@@ -1,4 +1,4 @@
-import { writeFileSync, mkdirSync, rmSync, readFileSync } from 'node:fs'
+import { writeFileSync, mkdirSync, rmSync, readFileSync, existsSync } from 'node:fs'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { LEXICON_LICENSE, collectEntries, writeLexiconBin } from './build-lexicon.mjs'
@@ -6,7 +6,30 @@ import { chatNext } from './lexicon-chat.mjs'
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..')
 
-// 三端共用的排序规则：前词 → 后词搭配，以及各档分数。代码只负责加载。
+// 统一的资源写入：失败时带上目标路径，便于定位是哪一端没写成功（避免部分写入后静默中断）。
+function writeTarget(target, data) {
+  try {
+    mkdirSync(dirname(target), { recursive: true })
+    writeFileSync(target, data)
+  } catch (error) {
+    throw new Error(`写入资源失败 ${target}：${error.message}`)
+  }
+}
+
+// 各平台资源目录约定（相对仓库根）。集中在此，避免同一目录字符串在多处重复且容易漏改。
+const PLATFORM_DIR = {
+  protocol: 'protocol',
+  android: 'android/app/src/main/assets',
+  windows: 'windows/internal/pinyin',
+  ios: 'ios/Resources',
+  harmony: 'harmony/entry/src/main/resources/rawfile',
+  macos: 'macos/Resources'
+}
+// 每种资源只写到消费它的平台子集（例如 android 用 lexicon.bin、不用 base-lexicon.json），
+// 用文件名 + 平台键派生目标路径，使各资源的分发范围一目了然。
+const assetTargets = (file, platforms) => platforms.map((name) => join(root, PLATFORM_DIR[name], file))
+
+// 全客户端共用的排序规则：前词 → 后词搭配，以及各档分数。代码只负责加载。
 const rules = {
   version: 1,
   weights: {
@@ -37,48 +60,31 @@ const rules = {
   next: chatNext
 }
 const rulesJson = JSON.stringify(rules)
-for (const target of [
-  join(root, 'protocol/ime-rules.json'),
-  join(root, 'android/app/src/main/assets/ime-rules.json'),
-  join(root, 'windows/internal/pinyin/ime-rules.json'),
-  join(root, 'ios/Resources/ime-rules.json'),
-  join(root, 'harmony/entry/src/main/resources/rawfile/ime-rules.json')
-]) {
-  mkdirSync(dirname(target), { recursive: true })
-  writeFileSync(target, rulesJson)
+for (const target of assetTargets('ime-rules.json', ['protocol', 'android', 'windows', 'ios', 'harmony'])) {
+  writeTarget(target, rulesJson)
 }
 console.log(`rules ${Object.keys(chatNext).length} next keys`)
-for (const target of [
-  join(root, 'ios/Resources/char-prior.json'),
-  join(root, 'harmony/entry/src/main/resources/rawfile/char-prior.json')
-]) {
-  mkdirSync(dirname(target), { recursive: true })
-  writeFileSync(target, readFileSync(join(root, 'protocol/char-prior.json')))
+const charPrior = readFileSync(join(root, 'protocol/char-prior.json'))
+for (const target of assetTargets('char-prior.json', ['ios', 'harmony'])) {
+  writeTarget(target, charPrior)
 }
 const entries = collectEntries()
 const lexicon = { version: 2, license: LEXICON_LICENSE, entries }
 const json = JSON.stringify(lexicon)
-const targets = [
-  join(root, 'protocol/base-lexicon.json'),
-  join(root, 'ios/Resources/base-lexicon.json'),
-  join(root, 'harmony/entry/src/main/resources/rawfile/base-lexicon.json'),
-  join(root, 'macos/Resources/base-lexicon.json'),
-  join(root, 'windows/internal/pinyin/base-lexicon.json')
-]
+const targets = assetTargets('base-lexicon.json', ['protocol', 'ios', 'harmony', 'macos', 'windows'])
 for (const target of targets) {
-  mkdirSync(dirname(target), { recursive: true })
-  writeFileSync(target, json)
+  writeTarget(target, json)
 }
 const bin = writeLexiconBin(entries)
-const binTargets = [
-  join(root, 'protocol/lexicon.bin'),
-  join(root, 'android/app/src/main/assets/lexicon.bin')
-]
-for (const target of binTargets) {
-  mkdirSync(dirname(target), { recursive: true })
-  writeFileSync(target, bin.bytes)
+for (const target of assetTargets('lexicon.bin', ['protocol', 'android'])) {
+  writeTarget(target, bin.bytes)
 }
-rmSync(join(root, 'android/app/src/main/assets/base-lexicon.json'), { force: true })
+// android 端消费二进制 lexicon.bin，不需要 base-lexicon.json；显式清理旧文件并记录。
+const androidJson = join(root, 'android/app/src/main/assets/base-lexicon.json')
+if (existsSync(androidJson)) {
+  rmSync(androidJson)
+  console.log(`removed stale ${androidJson}`)
+}
 console.log(`bin ${bin.entries} entries, ${bin.lists} lists, ${(bin.bytes.length / 1048576).toFixed(1)} MB`)
 
 const dict = [
@@ -91,5 +97,5 @@ const dict = [
   '...',
   ...entries.map((entry) => `${entry.w}\t${entry.p}\t${entry.f}`)
 ].join('\n') + '\n'
-writeFileSync(join(root, 'rime/susheng.dict.yaml'), dict)
+writeTarget(join(root, 'rime/susheng.dict.yaml'), dict)
 console.log(`lexicon ${entries.length} -> ${targets.length} copies`)

@@ -1,11 +1,11 @@
 import { createServer } from 'node:http'
 import { readFileSync, existsSync } from 'node:fs'
-import { dirname, join, normalize } from 'node:path'
+import { dirname, join, normalize, sep } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import {
   openDatabase, hashPassword, verifyPassword, publicUser, createSession, userFromToken,
   nextVersion, bumpEpoch, readGroups, groupMap, readAsset, saveAsset, loadAssetBytes,
-  metaNumber, randomUUID
+  metaNumber, randomUUID, parseGroupIds
 } from './db.mjs'
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..')
@@ -14,6 +14,22 @@ const TYPES = new Set(['script', 'tweet', 'promo', 'lexicon', 'image'])
 const ROLES = new Set(['admin', 'staff', 'creator'])
 const KINDS = new Set(['company', 'department', 'creator'])
 const SURFACES = new Set(['candidate', 'script', 'tweet', 'promo', 'lexicon', 'image', 'shortcut'])
+
+// 登录限速：按用户名在固定时间窗口内限制失败尝试次数，缓解暴力破解。
+const LOGIN_WINDOW_MS = 15 * 60 * 1000
+const LOGIN_MAX_ATTEMPTS = 20
+const loginAttempts = new Map()
+
+function loginThrottled(key) {
+  const now = Date.now()
+  const record = loginAttempts.get(key)
+  if (!record || now - record.start > LOGIN_WINDOW_MS) {
+    loginAttempts.set(key, { start: now, count: 1 })
+    return false
+  }
+  record.count += 1
+  return record.count > LOGIN_MAX_ATTEMPTS
+}
 
 function send(res, status, body, headers = {}) {
   const payload = Buffer.from(JSON.stringify(body))
@@ -118,7 +134,7 @@ function validateItem(input, { partial } = {}) {
 
 function canSeeGroup(user, groupId) {
   if (user.role === 'admin') return true
-  return JSON.parse(user.group_ids).includes(groupId)
+  return parseGroupIds(user.group_ids).includes(groupId)
 }
 
 function inWindow(row, now) {
@@ -138,12 +154,12 @@ function toSyncItem(row, groups, deleted = false) {
     pinyin: deleted ? '' : row.pinyin,
     shortcut: deleted ? '' : row.shortcut,
     groupId: row.group_id,
-    groupName: group ? group.name : '',
-    groupKind: group ? group.kind : 'company',
+    groupName: deleted ? '' : (group ? group.name : ''),
+    groupKind: deleted ? 'company' : (group ? group.kind : 'company'),
     assetId: deleted ? null : row.asset_id,
     mime: null,
-    validFrom: row.valid_from,
-    validTo: row.valid_to,
+    validFrom: deleted ? null : row.valid_from,
+    validTo: deleted ? null : row.valid_to,
     status: deleted ? 'unpublished' : row.status,
     version: row.version,
     updatedAt: row.updated_at,
@@ -194,10 +210,14 @@ export function createApp({ dbPath }) {
 
   function login(body, res) {
     const username = cleanText(body.username, 32)
+    if (loginThrottled(username || 'anonymous')) {
+      return send(res, 429, { error: '尝试过于频繁，请稍后再试' })
+    }
     const user = db.prepare('SELECT * FROM users WHERE username = ?').get(username)
     if (!user || user.disabled || !verifyPassword(body.password || '', user.password_hash)) {
       return send(res, 401, { error: '账号或密码不正确' })
     }
+    loginAttempts.delete(username)
     const token = createSession(db, user.id)
     send(res, 200, { token, user: publicUser(user), epoch: metaNumber(db, 'epoch') })
   }
@@ -350,7 +370,13 @@ export function createApp({ dbPath }) {
     if (!current) throw Object.assign(new Error('账号不存在'), { status: 404 })
     const displayName = body.displayName !== undefined ? cleanText(body.displayName, 40) : current.display_name
     const role = body.role !== undefined ? body.role : current.role
-    const groupIds = body.groupIds !== undefined ? body.groupIds.map(String) : JSON.parse(current.group_ids)
+    let groupIds
+    if (body.groupIds !== undefined) {
+      if (!Array.isArray(body.groupIds)) throw Object.assign(new Error('分组参数需为数组'), { status: 400 })
+      groupIds = body.groupIds.map(String)
+    } else {
+      groupIds = parseGroupIds(current.group_ids)
+    }
     const disabled = body.disabled !== undefined ? (body.disabled ? 1 : 0) : current.disabled
     if (!displayName || !ROLES.has(role)) throw Object.assign(new Error('姓名或角色无效'), { status: 400 })
     ensureGroups(groupIds)
@@ -431,6 +457,9 @@ export function createApp({ dbPath }) {
       validTo: body.validTo !== undefined ? body.validTo : current.valid_to
     })
     ensureGroups([item.groupId])
+    if (item.type === 'image' && item.assetId && !readAsset(db, item.assetId)) {
+      throw Object.assign(new Error('图片不存在'), { status: 400 })
+    }
     const version = nextVersion(db)
     db.prepare(`UPDATE items SET type=?, title=?, body=?, aliases=?, pinyin=?, shortcut=?, group_id=?, asset_id=?, valid_from=?, valid_to=?, version=?, updated_at=? WHERE id=?`).run(
       item.type, item.title, item.body || '', JSON.stringify(item.aliases), item.pinyin || '', item.shortcut || '',
@@ -494,7 +523,7 @@ export function createApp({ dbPath }) {
 function serveStatic(path, res) {
   const requested = path === '/' ? '/index.html' : path
   const file = normalize(join(publicDir, requested))
-  if (!file.startsWith(publicDir) || !existsSync(file)) {
+  if (!file.startsWith(publicDir + sep) || !existsSync(file)) {
     res.writeHead(404)
     res.end('not found')
     return
@@ -502,7 +531,7 @@ function serveStatic(path, res) {
   const ext = file.split('.').pop()
   const types = { html: 'text/html; charset=utf-8', css: 'text/css; charset=utf-8', js: 'text/javascript; charset=utf-8' }
   const body = readFileSync(file)
-  res.writeHead(200, { 'content-type': types[ext] || 'application/octet-stream', 'content-length': body.length })
+  res.writeHead(200, { 'content-type': types[ext] || 'application/octet-stream', 'content-length': body.length, 'cache-control': 'no-store' })
   res.end(body)
 }
 

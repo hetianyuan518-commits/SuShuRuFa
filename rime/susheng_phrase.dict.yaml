@@ -1,8 +1,9 @@
 # 短码词库由客户端同步时生成，提交的是话术正文。
+# 编码列不含开头的 `v` 前缀：affix_segmentor@shortcut 会先剥除 prefix `v`/suffix `'` 再查词典。
 ---
 name: susheng_phrase
 version: "1.0"
 sort: by_weight
 use_preset_vocabulary: false
 ...
-开场问候	vhy	100
+开场问候	hy	100

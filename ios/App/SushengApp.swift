@@ -12,6 +12,13 @@ struct SushengApp: App {
 
 private final class RepositoryHolder: ObservableObject {
     let repo = ContentRepository()
+    // repo 本身不是 ObservableObject；用 revision 作为可观察信号，每次重新加载
+    // 本地内容后自增，驱动读取 repo.items 的视图（如语录列表）刷新。
+    @Published private(set) var revision = 0
+    func reload() {
+        repo.loadLocal()
+        revision += 1
+    }
 }
 
 private enum Screen { case guide, privacy, home, settings, legal }
@@ -28,6 +35,7 @@ struct RootView: View {
     @State private var status = "尚未登录"
     @State private var skinId = KeyboardPrefs.skinId
     @State private var owned = KeyboardPrefs.owned
+    @State private var showRefusal = false
 
     var body: some View {
         Group {
@@ -41,8 +49,10 @@ struct RootView: View {
         }
         .background(Color(red: 0.96, green: 0.96, blue: 0.97))
         .onAppear {
-            holder.repo.loadLocal()
-            if let session = holder.repo.session() {
+            holder.reload()
+            if holder.repo.loadFailed {
+                status = "本地内容包读取失败，请到「设置」重新同步"
+            } else if let session = holder.repo.session() {
                 server = session.server
                 status = "\(session.displayName) · 本地版本 \(holder.repo.serverVersion) · \(holder.repo.items.count) 条"
             }
@@ -79,7 +89,7 @@ struct RootView: View {
             }
             Spacer()
             HStack {
-                Button("拒绝") { exit(0) }.buttonStyle(.bordered)
+                Button("拒绝") { showRefusal = true }.buttonStyle(.bordered)
                 Button("同意") {
                     KeyboardPrefs.accepted = true
                     screen = .home
@@ -89,6 +99,11 @@ struct RootView: View {
             }
         }
         .padding(24)
+        .alert("需要同意协议", isPresented: $showRefusal) {
+            Button("重新阅读", role: .cancel) { }
+        } message: {
+            Text("未同意用户服务协议和隐私政策前，无法进入苏晓输入法。你可以重新阅读协议，或在系统设置里移除已启用的键盘。")
+        }
     }
 
     private var legal: some View {
@@ -230,7 +245,13 @@ struct RootView: View {
                 TextField("内容台地址", text: $server).textFieldStyle(.roundedBorder)
                 TextField("账号", text: $username).textFieldStyle(.roundedBorder)
                 SecureField("密码", text: $password).textFieldStyle(.roundedBorder)
-                Button("登录") { Task { await run { try await holder.repo.login(server: server, username: username, password: password) } } }
+                Button("登录") {
+                    if cleartextCredentialRisk(server) {
+                        status = "为保护账号密码，非本机地址请使用 https://"
+                    } else {
+                        Task { await run { try await holder.repo.login(server: server, username: username, password: password) } }
+                    }
+                }
                     .buttonStyle(.borderedProminent).tint(Color(red: 1, green: 0.42, blue: 0))
                 Button("同步内容包") { Task { await run { try await holder.repo.sync() } } }
                 Text("启用方式：设置 → 通用 → 键盘 → 键盘 → 添加新键盘 → 苏晟输入法。")
@@ -256,11 +277,22 @@ struct RootView: View {
     private func run(_ work: @escaping () async throws -> String) async {
         do {
             status = try await work()
-            holder.repo.loadLocal()
+            holder.reload()
             status += " · \(holder.repo.items.count) 条"
         } catch {
             status = error.localizedDescription
         }
+    }
+
+    // 判断把凭据发到该地址是否存在明文风险：非 https 且主机不是本机/回环时，
+    // 用户名密码会经网络明文传输。回环地址（本地内容台）不视为风险，保留默认。
+    private func cleartextCredentialRisk(_ server: String) -> Bool {
+        let trimmed = server.trimmingCharacters(in: CharacterSet(charactersIn: "/"))
+        guard let comps = URLComponents(string: trimmed) else { return false }
+        if comps.scheme?.lowercased() == "https" { return false }
+        let host = comps.host?.lowercased() ?? ""
+        let local = ["127.0.0.1", "localhost", "::1", "[::1]", "0.0.0.0"]
+        return !local.contains(host)
     }
 }
 
@@ -270,7 +302,7 @@ private func legalText(_ title: String) -> String {
     case "用户服务协议":
         return date + "欢迎使用苏晟输入法。本协议由苏晟集团与使用本应用的员工、合作达人订立。\n\n你敲下的拼音和文字只在本机完成组词，不作为聊天记录上传。应用内皮肤点按即可启用，选择保存在本机。"
     case "隐私政策":
-        return date + "苏晟输入法不上传你正在输入的拼音、候选词和已经上屏的句子。\n\n登录会使用内容台账号和显示名。同步保存公司发布的话术、推文、宣发、词条和图片。插入公司内容时只上报条目编号和使用场景。\n\n拒绝协议将退出应用。已在系统里启用的键盘仍可在本机打字。"
+        return date + "苏晟输入法不上传你正在输入的拼音、候选词和已经上屏的句子。\n\n登录会使用内容台账号和显示名。同步保存公司发布的话术、推文、宣发、词条和图片。插入公司内容时只上报条目编号和使用场景。\n\n拒绝协议将无法进入应用；已在系统里启用的键盘仍可在本机打字。"
     case "儿童隐私保护指引":
         return date + "苏晟输入法面向苏晟集团员工和合作达人，不向儿童提供账号、内容同步或个性化皮肤服务。"
     case "已收集个人信息清单":

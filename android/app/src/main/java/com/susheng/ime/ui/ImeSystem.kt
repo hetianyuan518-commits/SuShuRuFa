@@ -16,7 +16,17 @@ internal object ImeSystem {
 
     enum class Jump { INPUT, LANGUAGE, NONE }
 
-    fun isHuaweiFamily(): Boolean {
+    // 设备品牌/系统属性在进程生命周期内不变，缓存结果避免每次调用重复反射与正则编译。
+    private val HARMONY_LABEL_REGEX = Regex("""(?i)harmony(?:os)?[^0-9]{0,12}(\d{1,2})""")
+    private val PLATFORM_MAJOR_REGEX = Regex("""^(\d{1,2})\.""")
+    private val huaweiFamilyCache: Boolean by lazy { computeHuaweiFamily() }
+    private val harmonyMajorCache: Int by lazy { computeHarmonyMajor() }
+
+    fun isHuaweiFamily(): Boolean = huaweiFamilyCache
+
+    fun harmonyMajor(): Int = harmonyMajorCache
+
+    private fun computeHuaweiFamily(): Boolean {
         val blob = listOf(Build.BRAND, Build.MANUFACTURER, Build.DISPLAY, Build.FINGERPRINT)
             .joinToString(" ")
             .lowercase()
@@ -31,7 +41,7 @@ internal object ImeSystem {
         }.getOrDefault(false)
     }
 
-    fun harmonyMajor(): Int {
+    private fun computeHarmonyMajor(): Int {
         val platform = systemProperty("hw_sc.build.platform.version")
         val blob = listOf(
             platform,
@@ -42,9 +52,9 @@ internal object ImeSystem {
             systemProperty("ro.build.display.id"),
             Build.DISPLAY
         ).joinToString(" ")
-        val labeled = Regex("""(?i)harmony(?:os)?[^0-9]{0,12}(\d{1,2})""").find(blob)
+        val labeled = HARMONY_LABEL_REGEX.find(blob)
         if (labeled != null) return labeled.groupValues[1].toInt()
-        return Regex("""^(\d{1,2})\.""").find(platform)?.groupValues?.get(1)?.toIntOrNull() ?: 0
+        return PLATFORM_MAJOR_REGEX.find(platform)?.groupValues?.get(1)?.toIntOrNull() ?: 0
     }
 
     fun manualPath(): String {
@@ -92,6 +102,9 @@ internal object ImeSystem {
     }
 
     private fun openSetInput(activity: Activity): Boolean {
+        // 该组件是否真正响应 set_input action 因固件版本而异，无法在不实测的情况下确认；
+        // 先校验华为设置包是否存在，避免对未安装该包的机型把 startActivity 未抛异常误判为跳转成功。
+        if (!packageExists(activity, HARMONY_SETTINGS)) return false
         val component = ComponentName(HARMONY_SETTINGS, HARMONY_ABILITY)
         val intents = listOf(
             Intent(Intent.ACTION_VIEW).apply {
@@ -145,10 +158,16 @@ internal object ImeSystem {
 
     private fun showPicker(activity: Activity): Boolean {
         return runCatching {
-            activity.getSystemService(InputMethodManager::class.java).showInputMethodPicker()
+            val imm = activity.getSystemService(InputMethodManager::class.java) ?: return false
+            imm.showInputMethodPicker()
             true
         }.getOrDefault(false)
     }
+
+    private fun packageExists(activity: Activity, pkg: String): Boolean = runCatching {
+        activity.packageManager.getPackageInfo(pkg, 0)
+        true
+    }.getOrDefault(false)
 
     private fun tryStart(activity: Activity, intent: Intent, requireResolve: Boolean = true): Boolean {
         intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)

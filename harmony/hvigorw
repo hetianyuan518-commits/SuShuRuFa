@@ -1,4 +1,21 @@
 #!/bin/sh
+# ROOT 基于脚本自身路径解析。注意：若通过 PATH 以裸命令名调用（$0 == hvigorw，dirname == .）
+# 或经符号链接调用，dirname 可能解析到错误目录。请从脚本所在目录以其路径调用
+# （如 ./hvigorw 或绝对路径）；下方的入口存在性检查会在 ROOT 解析错误时给出可操作报错，
+# 而不是静默地把 node 指向不存在的路径。
 ROOT="$(CDPATH= cd -- "$(dirname "$0")" && pwd)"
-export JAVA_HOME="${JAVA_HOME:-/Applications/Android Studio.app/Contents/jbr/Contents/Home}"
-exec node "$ROOT/node_modules/@ohos/hvigor/bin/hvigor.js" "$@"
+# 仅当该默认 JDK 路径确实存在时才回退到它，避免在 Linux/CI 上把 JAVA_HOME 指向不存在的
+# 目录、导致构建带着无效 JDK 继续并在稍后抛出晦涩错误。已设置或路径不存在时保持原样。
+if [ -z "${JAVA_HOME:-}" ] && [ -d "/Applications/Android Studio.app/Contents/jbr/Contents/Home" ]; then
+  export JAVA_HOME="/Applications/Android Studio.app/Contents/jbr/Contents/Home"
+fi
+HVIGOR_JS="$ROOT/node_modules/@ohos/hvigor/bin/hvigor.js"
+if ! command -v node >/dev/null 2>&1; then
+  echo "hvigorw: 'node' not found in PATH. Please install Node.js." >&2
+  exit 1
+fi
+if [ ! -f "$HVIGOR_JS" ]; then
+  echo "hvigorw: cannot find $HVIGOR_JS; run 'npm install' first (and invoke hvigorw from its own directory)." >&2
+  exit 1
+fi
+exec node "$HVIGOR_JS" "$@"

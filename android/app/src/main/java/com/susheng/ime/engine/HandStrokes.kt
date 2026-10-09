@@ -24,11 +24,14 @@ internal object HandStrokes {
     private const val DIM = GRID * GRID * DIRS
     private const val RECORD = 1 + 4 + DIM
 
-    private var labels = emptyArray<String>()
-    private var packed = ByteArray(0)
-    private var norm2 = IntArray(0)
-    private var strokeCounts = IntArray(0)
-    private var ready = false
+    @Volatile private var labels = emptyArray<String>()
+    @Volatile private var packed = ByteArray(0)
+    @Volatile private var norm2 = IntArray(0)
+    @Volatile private var strokeCounts = IntArray(0)
+    // 双重检查锁定在锁外读 ready，@Volatile 保证可见性；labels/packed 等在 ready=true 之前写入，通过 volatile 语义安全发布
+    @Volatile private var ready = false
+    // “一点”类输入的候选回退，两个分支共用，避免两处字面量漂移。
+    private val DOT_FALLBACK = listOf("丶", "。", "〇", "一")
 
     fun ensure(context: Context): Boolean {
         if (ready) return true
@@ -36,6 +39,8 @@ internal object HandStrokes {
             if (ready) return true
             val chars = context.assets.open("hand-chars.txt").bufferedReader().use { it.readText() }.trim()
             val bytes = context.assets.open("hand-strokes.bin").use { it.readBytes() }
+            // 头部（magic 4 字节 + count/dim 各 2 字节）读取前先校验长度，避免截断资源抛 BufferUnderflowException
+            if (bytes.size < 8) return false
             val buffer = ByteBuffer.wrap(bytes).order(ByteOrder.LITTLE_ENDIAN)
             val magic = ByteArray(4)
             buffer.get(magic)
@@ -67,34 +72,34 @@ internal object HandStrokes {
         limit: Int = 8
     ): List<String> {
         if (!ready || strokes.isEmpty()) return emptyList()
-        if (isDot(strokes)) return listOf("丶", "。", "〇", "一").take(limit)
+        // 一次性把 volatile 引用捕获到局部，既明确安全发布，又避免热循环里反复做 volatile 读。
+        val labelsRef = labels
+        val packedRef = packed
+        val norm2Ref = norm2
+        val strokeCountsRef = strokeCounts
+        if (isDot(strokes)) return DOT_FALLBACK.take(limit)
         val user = quantize(histogram(strokes))
         var userNorm = 0
         for (value in user) userNorm += value * value
-        if (userNorm == 0) return listOf("丶", "。", "〇", "一").take(limit)
-        val written = strokes.count { stroke ->
-            if (stroke.size < 2) return@count false
-            var length = 0f
-            for (i in 1 until stroke.size) {
-                length += hypot(stroke[i].x - stroke[i - 1].x, stroke[i].y - stroke[i - 1].y)
-            }
-            length >= 12f
-        }
+        if (userNorm == 0) return DOT_FALLBACK.take(limit)
+        // 与 build-hand-strokes.py 的 count = sum(1 for stroke in raw if len(stroke) >= 2) 对齐：
+        // 模板 strokeCounts 按“点数 >= 2”统计，这里也按点数统计，避免像素长度阈值造成加成分歧。
+        val written = strokes.count { it.size >= 2 }
         val keep = max(limit, 8)
         val bestAt = IntArray(keep) { -1 }
         val bestScore = FloatArray(keep)
-        val count = labels.size
+        val count = labelsRef.size
         for (index in 0 until count) {
-            val tmplNorm = norm2[index]
+            val tmplNorm = norm2Ref[index]
             if (tmplNorm <= 0) continue
             var dot = 0
             val base = index * DIM
             for (dim in 0 until DIM) {
-                dot += user[dim] * packed[base + dim]
+                dot += user[dim] * packedRef[base + dim]
             }
             var score = (dot / sqrt(userNorm.toDouble() * tmplNorm)).toFloat()
-            if (written > 0 && strokeCounts[index] == written) score += 0.02f
-            score += boost[labels[index]] ?: 0f
+            if (written > 0 && strokeCountsRef[index] == written) score += 0.02f
+            score += boost[labelsRef[index]] ?: 0f
             var slot = -1
             for (i in 0 until keep) {
                 if (bestAt[i] < 0 || score > bestScore[i]) {
@@ -110,7 +115,7 @@ internal object HandStrokes {
             bestAt[slot] = index
             bestScore[slot] = score
         }
-        return bestAt.filter { it >= 0 }.take(limit).map { labels[it] }
+        return bestAt.filter { it >= 0 }.take(limit).map { labelsRef[it] }
     }
 
     private fun isDot(strokes: List<List<PointF>>): Boolean {
@@ -137,6 +142,7 @@ internal object HandStrokes {
     private fun quantize(hist: DoubleArray): IntArray {
         val out = IntArray(DIM)
         for (i in 0 until DIM) {
+            // roundToInt 即 floor(x + 0.5)，与 build-hand-strokes.py 的 np.floor(vec*127+0.5) 一致（值非负，逢 .5 向正无穷进位）。
             out[i] = (hist[i] * 127.0).roundToInt().coerceIn(-127, 127)
         }
         return out

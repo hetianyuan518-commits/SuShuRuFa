@@ -14,6 +14,7 @@ engine:
     - recognizer
     - key_binder
     - speller
+    - punctuator
     - selector
     - navigator
     - express_editor
@@ -29,15 +30,14 @@ engine:
 
 shortcut:
   tag: shortcut
+  # affix_segmentor 会先剥除 prefix `v` 与 suffix `'`，再把中间编码交给 script_translator@shortcut，
+  # 因此 susheng_phrase.dict.yaml 里的编码不含开头的 `v`（如“开场问候”对应 `hy` 而非 `vhy`）。
+  # 这是 Rime 反查/短码的标准用法（同 reverse_lookup 的 prefix “`” 不会写进词典键）。
   prefix: "v"
   suffix: "'"
   tips: "〔短码〕"
   dictionary: susheng_phrase
 
-translator:
-  dictionary: susheng
-  enable_user_dict: false
-
 recognizer:
   patterns:
-    shortcut: "^v[a-z0-9]*$"
+    shortcut: "^v[a-z0-9]*'?$"

@@ -15,7 +15,7 @@ const W = {
   家: 'jia', 路上: 'lu shang', 我: 'wo', 你: 'ni', 他: 'ta', 她: 'ta',
   了: 'le', 的: 'de', 吗: 'ma', 呢: 'ne', 吧: 'ba', 啊: 'a', 呀: 'ya', 啦: 'la',
   不: 'bu', 没: 'mei', 很: 'hen', 也: 'ye', 都: 'dou', 再: 'zai', 就: 'jiu', 还: 'hai',
-  把: 'ba', 给: 'gei', 让: 'rang', 和: 'he', 跟: 'gen', 从: 'cong', 把: 'ba',
+  把: 'ba', 给: 'gei', 让: 'rang', 和: 'he', 跟: 'gen', 从: 'cong',
   说: 'shuo', 看: 'kan', 吃: 'chi', 喝: 'he', 睡: 'shui', 走: 'zou', 坐: 'zuo',
   带: 'dai', 发: 'fa', 拍: 'pai', 换: 'huan', 开: 'kai', 关: 'guan', 洗: 'xi',
   等: 'deng', 忙: 'mang', 快: 'kuai', 慢: 'man', 好: 'hao', 大: 'da', 多: 'duo',
@@ -40,7 +40,7 @@ const W = {
   什么: 'shen me', 怎么: 'zen me', 这个: 'zhe ge', 那个: 'na ge', 这样: 'zhe yang',
   这么: 'zhe me', 我们: 'wo men', 你们: 'ni men', 他们: 'ta men', 自己: 'zi ji',
   大家: 'da jia', 家人们: 'jia ren men', 别人: 'bie ren',
-  到家: 'dao jia', 一声: 'yi sheng', 下楼: 'xia lou', 下车: 'xia che', 出门: 'chu men',
+  到家: 'dao jia', 一声: 'yi sheng', 下楼: 'xia lou', 下车: 'xia che',
   过去: 'guo qu', 回来: 'hui lai', 回去: 'hui qu', 过来: 'guo lai',
   吃饭了吗: 'chi fan le ma', 方便: 'fang bian', 电话: 'dian hua', 接: 'jie',
   微信: 'wei xin', 支付宝: 'zhi fu bao', 支付: 'zhi fu', 发票: 'fa piao', 抬头: 'tai tou',
@@ -89,7 +89,7 @@ const W = {
   确认: 'que ren', 收工: 'shou gong', 合作: 'he zuo', 愉快: 'yu kuai',
   保持: 'bao chi', 联系: 'lian xi', 通过: 'tong guo', 加: 'jia',
   资料: 'zi liao', 回头: 'hui tou', 回聊: 'hui liao', 消息: 'xiao xi',
-  五分钟: 'wu fen zhong', 帮: 'bang', 做: 'zuo', 穿: 'chuan', 拿: 'na',
+  帮: 'bang', 做: 'zuo', 穿: 'chuan',
   信号: 'xin hao', 地铁上: 'di tie shang', 快没电: 'kuai mei dian', 电: 'dian',
   散散步: 'san san bu', 吃完: 'chi wan', 饭: 'fan', 打给: 'da gei',
   忘记: 'wang ji', 想你: 'xiang ni', 爱你: 'ai ni', 在干嘛: 'zai gan ma',
@@ -106,12 +106,14 @@ const W = {
 
 const best = new Map()
 const missing = new Set()
+const oversized = new Set()
 
 function add(word, pinyin, freq) {
   const chars = Array.from(word)
   const syls = pinyin.split(' ').filter(Boolean)
   if (chars.length !== syls.length) throw new Error(`${word} 字数 ${chars.length} 和拼音 ${syls.length} 不一致`)
-  if (chars.length < 2 || chars.length > 16) return
+  if (chars.length < 2) return
+  if (chars.length > 16) { oversized.add(word); return }
   for (const syl of syls) {
     if (!SYLLABLES.has(syl)) throw new Error(`${word} 里有不能用的音节 ${syl}`)
   }
@@ -421,7 +423,8 @@ const fixed = [
   [444, ['外面', '降温', '了', '多', '穿', '一件', '别', '着凉']]
 ]
 
-// 便宜、多少、晚 这些单字要先补进词典再组句。
+// 补充词典必须在下方 fixed 循环（line() 会查 W 组句）之前执行：
+// Object.assign 与 line() 都读写共享的模块态 W，若把本补丁移到 fixed 循环之后，组句时会因 W 缺词而抛错。
 Object.assign(W, {
   便宜: 'pian yi', 多少: 'duo shao', 晚: 'wan', 下个: 'xia ge',
   记得: 'ji de', 还是: 'hai shi', 这: 'zhe', 那: 'na', 几点: 'ji dian', 忘: 'wang',
@@ -432,6 +435,8 @@ Object.assign(W, {
 })
 
 for (const [freq, parts] of fixed) line(freq, ...parts)
+
+if (oversized.size) console.warn(`[lexicon-daily] 以下词条超过 16 字被跳过：${[...oversized].join('、')}`)
 
 if (missing.size) throw new Error(`缺少拼音：${[...missing].join('、')}`)
 

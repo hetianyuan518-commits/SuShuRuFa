@@ -15,6 +15,8 @@ final class KeyboardViewController: UIInputViewController {
     private var associating = false
     private var panelKind: String?
     private var skin = KeyboardSkins.byId(KeyboardPrefs.skinId)
+    private var candidateCacheKey: String?
+    private var candidateCache: [Candidate] = []
 
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -185,6 +187,17 @@ final class KeyboardViewController: UIInputViewController {
     }
 
     private func currentCandidates() -> [Candidate] {
+        // 一次按键会在 onKey/choose/refresh 中多次调用，这里按输入状态缓存，
+        // 避免重复创建 rime 会话 / 重扫词表，降低主线程每次按键的延迟。
+        let key = "\(chinese)|\(mode)|\(raw)|\(associating)|\(lastCommit)|\(repo.serverVersion)"
+        if let cached = candidateCacheKey, cached == key { return candidateCache }
+        let result = computeCandidates()
+        candidateCacheKey = key
+        candidateCache = result
+        return result
+    }
+
+    private func computeCandidates() -> [Candidate] {
         guard chinese else { return [] }
         if !raw.isEmpty {
             let builtin = PinyinEngine.candidates(raw: raw, mode: mode == "t9" ? "t9" : "qwerty", lexicon: repo.lexicon, items: repo.items)
@@ -263,17 +276,21 @@ final class KeyboardViewController: UIInputViewController {
             hint.text = "图片需要在系统设置里允许完全访问。完全访问只用于写入剪贴板，按键内容不会上传。"
             return
         }
-        let copied: Bool = autoreleasepool {
-            guard let data = try? Data(contentsOf: url) else { return false }
-            UIPasteboard.general.setData(data, forPasteboardType: "public.png")
-            return true
+        hint.text = "正在准备图片…"
+        // 图片读取放到后台，避免在主线程同步读大文件阻塞键盘 UI 甚至触发看门狗。
+        Task.detached { [weak self] in
+            let data: Data? = autoreleasepool { try? Data(contentsOf: url) }
+            await MainActor.run {
+                guard let self else { return }
+                guard let data else {
+                    self.hint.text = "图片还没同步下来"
+                    return
+                }
+                UIPasteboard.general.setData(data, forPasteboardType: "public.png")
+                self.hint.text = "已复制图片，请在输入框粘贴"
+                if let itemId { self.repo.reportUsage(itemId: itemId, surface: "image") }
+            }
         }
-        guard copied else {
-            hint.text = "图片还没同步下来"
-            return
-        }
-        hint.text = "已复制图片，请在输入框粘贴"
-        if let itemId { repo.reportUsage(itemId: itemId, surface: "image") }
     }
 
     private func button(_ title: String, action: @escaping () -> Void) -> UIButton {

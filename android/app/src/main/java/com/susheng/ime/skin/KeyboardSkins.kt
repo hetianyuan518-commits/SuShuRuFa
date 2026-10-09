@@ -72,6 +72,7 @@ object KeyboardPrefs {
     }
 
     fun applySkin(context: Context, id: Int) {
+        if (KeyboardSkins.skins.none { it.id == id }) return
         val next = owned(context).map { it.toString() }.toMutableSet()
         next.add(id.toString())
         prefs(context).edit().putInt("skin", id).putStringSet("owned_skins", next).apply()
@@ -83,7 +84,15 @@ class SkinPreview(context: Context, private val skin: KeyboardSkin) : View(conte
 
     override fun onMeasure(widthMeasureSpec: Int, heightMeasureSpec: Int) {
         val width = MeasureSpec.getSize(widthMeasureSpec)
-        setMeasuredDimension(width, (width * 0.62f).toInt().coerceAtLeast(1))
+        // 先算出期望高（宽 * 0.62），再根据高度 MeasureSpec 模式与父容器约束调和，
+        // 避免在 EXACTLY/AT_MOST 下返回违反约束的尺寸导致布局/裁切错误。
+        val desired = (width * 0.62f).toInt().coerceAtLeast(1)
+        val height = when (MeasureSpec.getMode(heightMeasureSpec)) {
+            MeasureSpec.EXACTLY -> MeasureSpec.getSize(heightMeasureSpec)
+            MeasureSpec.AT_MOST -> desired.coerceAtMost(MeasureSpec.getSize(heightMeasureSpec))
+            else -> desired
+        }
+        setMeasuredDimension(width, height.coerceAtLeast(1))
     }
 
     override fun onDraw(canvas: Canvas) {

@@ -55,6 +55,9 @@ var (
 	lexiconErr  error
 )
 
+// LoadLexicon 返回嵌入词库的解析结果（首次调用解析并缓存）。
+// 返回的切片是包级共享缓存，调用方必须视为只读：不得对其原地排序、append 或修改元素，
+// 否则会污染后续所有调用看到的词库。如需变更请先自行拷贝。error 非 nil 时切片为空。
 func LoadLexicon() ([]LexEntry, error) {
 	lexiconOnce.Do(func() {
 		var file lexiconFile
@@ -158,7 +161,12 @@ func Candidates(raw, mode string, lexicon []LexEntry, items []Item, now int64, l
 		if rows[i].Score != rows[j].Score {
 			return rows[i].Score > rows[j].Score
 		}
-		return len([]rune(rows[i].Text)) < len([]rune(rows[j].Text))
+		li, lj := len([]rune(rows[i].Text)), len([]rune(rows[j].Text))
+		if li != lj {
+			return li < lj
+		}
+		// 同分同长时以文本作为最后的 tiebreaker，使排序成为全序，避免 dedupe/clip 边界存活者因输入顺序而拖动。
+		return rows[i].Text < rows[j].Text
 	})
 	return clip(dedupe(rows), limit)
 }
@@ -188,7 +196,9 @@ func Associate(last string, lexicon []LexEntry, items []Item, now int64, limit i
 		if entry.W == "" || !strings.HasPrefix(entry.W, word) || entry.W == word {
 			continue
 		}
-		suffix := string([]rune(entry.W)[len([]rune(word)):])
+		// HasPrefix 已保证 word 是 entry.W 的字节前缀，按字节切片即可；
+		// 用 []rune 计数在 word 为非法 UTF-8（如被截断的 last）时会得到错误长度，可能触发切片越界 panic。
+		suffix := entry.W[len(word):]
 		rows = append(rows, Candidate{
 			Text: entry.W, Commit: suffix, Source: "lexicon", Kind: "lexicon",
 			Hint: entry.P, Score: entry.F,

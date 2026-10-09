@@ -5,7 +5,7 @@ import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { candidates, associate } from './pinyin-engine.mjs'
 
-const lexicon = JSON.parse(readFileSync(join(dirname(fileURLToPath(import.meta.url)), 'base-lexicon.json'), 'utf8')).entries
+const lexicon = Object.freeze(JSON.parse(readFileSync(join(dirname(fileURLToPath(import.meta.url)), 'base-lexicon.json'), 'utf8')).entries)
 const items = [
   {
     id: 'i-hello',
@@ -30,6 +30,10 @@ const items = [
     deleted: false
   }
 ]
+
+// fixture 为所有用例共享，冻结以防某个测试意外改写而波及其余用例（浅冻结即可：用例只会读取或展开副本）。
+items.forEach(Object.freeze)
+Object.freeze(items)
 
 test('全拼 nihao 首选你好', () => {
   const rows = candidates({ raw: 'nihao', lexicon, items })
@@ -96,6 +100,7 @@ test('单字联想先出日常二字，再出口语后续', () => {
   const texts = rows.map((row) => row.text)
   assert.equal(texts[0], '我们')
   assert.equal(rows[0].commit, '们')
+  // “我的”必须出现但不能排首位（首位固定为“我们”）；若“我国”也入候选，则“我的”必须排在它之前（口语优先于书面语）。
   assert.ok(texts.indexOf('我的') > 0)
   const country = texts.indexOf('我国')
   assert.ok(country === -1 || texts.indexOf('我的') < country)
@@ -181,11 +186,17 @@ test('没打完和中间夹首字母也能联想', () => {
 })
 
 test('过期内容不进入候选', () => {
+  const now = Date.now()
   const rows = candidates({
     raw: 'vhy',
     lexicon,
-    items: [{ ...items[0], validTo: Date.now() - 1000 }],
-    now: Date.now()
+    items: [{ ...items[0], validTo: now - 1000 }],
+    now
   })
   assert.equal(rows.length, 0)
+})
+
+test('空输入和纯分隔符不产生候选', () => {
+  assert.deepEqual(candidates({ raw: '', lexicon, items }), [])
+  assert.deepEqual(candidates({ raw: "'''", lexicon, items }), [])
 })

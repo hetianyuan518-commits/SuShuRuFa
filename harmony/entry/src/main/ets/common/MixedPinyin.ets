@@ -42,6 +42,7 @@ let cachedExact: Map<string, MixRow[]> = new Map()
 let cachedFreq: Map<string, number> = new Map()
 let cachedCount: number = -1
 let cachedHead: string = ''
+let cachedTail: string = ''
 
 export function mixedSentences(input: string, lexicon: LexEntry[]): MixHit[] {
   if (input.length > 24) {
@@ -364,10 +365,6 @@ function mixedFor(tokens: string[], lexicon: LexEntry[]): MixHit[] {
   for (let i = 0; i < order.length; i++) {
     out.push(sentence(order[i], scored.get(order[i]) || 0))
   }
-  out.sort((a: MixHit, b: MixHit) => b.score - a.score)
-  if (out.length > 8) {
-    out = out.slice(0, 8)
-  }
   let seenText: Set<string> = new Set()
   for (let i = 0; i < out.length; i++) {
     seenText.add(out[i].text)
@@ -390,6 +387,12 @@ function mixedFor(tokens: string[], lexicon: LexEntry[]): MixHit[] {
     out.push(sentence(best.text, 3000 - prefixRank * 5))
     prefixRank++
   }
+  // 主句与补充的前缀候选统一在末尾排序并截断到 8：保证返回顺序单调、总数不超上限，
+  // 不再出现「先截 8、又追加 3」导致的 11 条且乱序结果。
+  out.sort((a: MixHit, b: MixHit) => b.score - a.score)
+  if (out.length > 8) {
+    out = out.slice(0, 8)
+  }
   return out
 }
 
@@ -408,7 +411,7 @@ function sentence(text: string, score: number): MixHit {
 
 function initialBest(letter: string, memo: Map<string, number>): number {
   if (memo.has(letter)) {
-    return memo.get(letter) || 0
+    return memo.get(letter) as number
   }
   let best = 0
   cachedFreq.forEach((weight: number, syl: string) => {
@@ -425,14 +428,16 @@ function edgeGain(word: string, freq: number, count: number, loose: number): num
   if (count >= 2) {
     base = freq + 560 * (count - 1)
   } else if (charPrior.has(word)) {
-    base = charPrior.get(word) || freq
+    // 已用 has 判存在；值为 0 时直接采用 0，不再用 || 回退到 freq。
+    base = charPrior.get(word) as number
   }
   return base - loose * 40
 }
 
 function rowWeight(row: MixRow): number {
   if (row.syls.length === 1 && Array.from(row.w).length === 1) {
-    return charPrior.get(row.w) || row.f
+    // charPrior 中值为 0 是合法先验，不应用 || 回退到 row.f。
+    return charPrior.has(row.w) ? (charPrior.get(row.w) as number) : row.f
   }
   return row.f
 }
@@ -582,7 +587,11 @@ function sylsBefore(syls: string[], prefix: string[]): boolean {
 
 function ensureIndex(lexicon: LexEntry[]): void {
   let head = lexicon.length > 0 ? lexicon[0].w : ''
-  if (cachedCount === lexicon.length && cachedHead === head && cachedRows.length > 0) {
+  // 仅用 length + 首词做缓存签名不够：词表被换成同长度、同首词但内容不同的版本时会命中陈旧缓存。
+  // 追加末条的 词/拼音/词频 作为签名，同时校验首尾，尽量代表整体内容。
+  let last = lexicon.length > 0 ? lexicon[lexicon.length - 1] : undefined
+  let tail = last !== undefined ? (last.w + '|' + last.p + '|' + last.f) : ''
+  if (cachedCount === lexicon.length && cachedHead === head && cachedTail === tail && cachedRows.length > 0) {
     return
   }
   let prepared: MixRow[] = []
@@ -615,31 +624,37 @@ function ensureIndex(lexicon: LexEntry[]): void {
     }
     return a.syls.length - b.syls.length
   })
-  cachedFreq = new Map()
+  // 先把 freq/exact 构建到局部变量，最后再一次性替换所有 cached* 字段，
+  // 避免重入/交错调用读到半重建的索引（module 级可变单例的原子切换）。
+  let freq: Map<string, number> = new Map()
   for (let i = 0; i < prepared.length; i++) {
     let row = prepared[i]
     if (row.syls.length === 1 && Array.from(row.w).length === 1) {
-      let weight = charPrior.get(row.w) || row.f
-      if (weight > (cachedFreq.get(row.syls[0]) || 0)) {
-        cachedFreq.set(row.syls[0], weight)
+      // charPrior 命中且值为 0 时应采用 0，而非回退到 row.f；用 has 显式判存在。
+      let weight = charPrior.has(row.w) ? (charPrior.get(row.w) as number) : row.f
+      if (weight > (freq.get(row.syls[0]) || 0)) {
+        freq.set(row.syls[0], weight)
       }
     }
   }
-  cachedExact = new Map()
+  let exact: Map<string, MixRow[]> = new Map()
   for (let i = 0; i < ranked.length; i++) {
     let row = ranked[i]
     if (row.ini.length < 1 || row.ini.length > 16) {
       continue
     }
-    let list = cachedExact.get(row.ini) || []
+    let list = exact.get(row.ini) || []
     if (list.length < 12) {
       list.push(row)
-      cachedExact.set(row.ini, list)
+      exact.set(row.ini, list)
     }
   }
   cachedRows = prepared
+  cachedFreq = freq
+  cachedExact = exact
   cachedCount = lexicon.length
   cachedHead = head
+  cachedTail = tail
 }
 
 function syllablesOf(pinyin: string): string[] {

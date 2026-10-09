@@ -1,8 +1,5 @@
 package com.susheng.ime.engine
 
-import android.graphics.PointF
-import kotlin.math.abs
-
 /**
  * 五笔画：1 横、2 竖、3 撇、4 点捺、5 折。6 或 * 是通配。
  * 只收录笔顺稳定的常用字，避免把不确定的笔顺写进词表。
@@ -64,9 +61,12 @@ internal object StrokeTable {
             32 亻
         """.trimIndent()
         entries = rows.lineSequence().map { line ->
-            val parts = line.trim().split(" ")
+            // 用 \s+ 而非单个字面空格切分，避免连续空格产生空字段；
+            // 校验后再索引，坏行以清晰消息失败，而不是抛 IndexOutOfBounds。
+            val parts = line.trim().split(Regex("\\s+"))
+            require(parts.size >= 2 && parts[0].isNotEmpty() && parts[1].isNotEmpty()) { "bad stroke row: $line" }
             parts[0] to parts[1]
-        }.sortedBy { it.first.length }.toList()
+        }.toList()
     }
 
     fun symbol(ch: Char): String = when (ch) {
@@ -76,7 +76,8 @@ internal object StrokeTable {
         '4' -> "丶"
         '5' -> "乛"
         '6', '*' -> "*"
-        else -> ch.toString()
+        // 非笔画符号的意外输入返回空串，由调用方过滤，避免杂字符泄漏到显示标签。
+        else -> ""
     }
 
     fun candidates(pattern: String): List<String> {
@@ -93,30 +94,6 @@ internal object StrokeTable {
             }
         }
         return out
-    }
-
-    fun classify(points: List<PointF>): Char {
-        if (points.size < 2) return '4'
-        val start = points.first()
-        val end = points.last()
-        val dx = end.x - start.x
-        val dy = end.y - start.y
-        var turn = false
-        var prevX = 0f
-        var prevY = 0f
-        for (index in 1 until points.size) {
-            val stepX = points[index].x - points[index - 1].x
-            val stepY = points[index].y - points[index - 1].y
-            if (index > 1 && (stepX * prevX + stepY * prevY) < 0f) turn = true
-            prevX = stepX
-            prevY = stepY
-        }
-        if (turn && abs(dx) + abs(dy) > 0f) return '5'
-        if (abs(dx) >= abs(dy) * 1.15f && dx > 0f) return '1'
-        if (abs(dy) >= abs(dx) * 1.15f && dy > 0f) return '2'
-        if (dx < 0f && dy > 0f) return '3'
-        if (dx > 0f && dy > 0f) return '4'
-        return '5'
     }
 
     private fun matches(code: String, pattern: String): Boolean {

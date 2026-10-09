@@ -31,7 +31,9 @@ class AbbrevPinyinTest {
         var total = 0
         var top1 = 0
         var top5 = 0
-        val misses = ArrayList<String>()
+        // 分开记录首选与前五的未命中，使每个断言的失败信息只展示与它相关的例子。
+        val misses1 = ArrayList<String>()
+        val misses5 = ArrayList<String>()
         for (index in 0 until cases.length()) {
             val row = cases.getJSONArray(index)
             if (row.getString(0) != kind) continue
@@ -45,15 +47,17 @@ class AbbrevPinyinTest {
                 emptyList(),
                 sentences = bin.sentences(raw)
             ).take(5).map { it.commit }
-            if (texts.firstOrNull() == word) top1++ else if (misses.size < 20) misses.add("$raw → ${texts.take(3).joinToString(" ")}，期望 $word")
+            if (texts.firstOrNull() == word) top1++
+            else if (misses1.size < 20) misses1.add("$raw → ${texts.take(3).joinToString(" ")}，期望 $word")
             if (word in texts) top5++
+            else if (misses5.size < 20) misses5.add("$raw → ${texts.joinToString(" ")}，期望 $word")
         }
         assertTrue("$name 用例只有 $total 条", total >= 50)
         val rate1 = top1 * 100 / total
         val rate5 = top5 * 100 / total
-        val detail = "$name $total 条：首选 $top1（$rate1%），前五 $top5（$rate5%）\n" + misses.joinToString("\n")
-        assertTrue("$detail\n首选 $rate1% 低于 $wantTop1%", rate1 >= wantTop1)
-        assertTrue("$detail\n前五 $rate5% 低于 $wantTop5%", rate5 >= wantTop5)
+        val header = "$name $total 条：首选 $top1（$rate1%），前五 $top5（$rate5%）"
+        assertTrue("$header\n首选未命中：\n${misses1.joinToString("\n")}\n首选 $rate1% 低于 $wantTop1%", rate1 >= wantTop1)
+        assertTrue("$header\n前五未命中：\n${misses5.joinToString("\n")}\n前五 $rate5% 低于 $wantTop5%", rate5 >= wantTop5)
     }
 
     companion object {

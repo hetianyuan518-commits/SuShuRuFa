@@ -8,9 +8,9 @@ import fs from '@ohos.file.fs'
 
 @Component
 struct KeyButton {
-  label: string = ''
-  keyColor: string = '#FFFFFF'
-  textColor: string = '#222222'
+  @Prop label: string = ''
+  @Prop keyColor: string = '#FFFFFF'
+  @Prop textColor: string = '#222222'
   onTap: () => void = () => {}
   build() {
     Button(this.label)
@@ -63,7 +63,7 @@ struct KeyboardPage {
               .backgroundColor('#E7DCC8')
               .fontColor('#1B140F')
               .onClick(() => this.choose(row))
-          })
+          }, (row: Candidate, index: number) => index + ':' + (row.itemId ? row.itemId : row.source + ':' + row.commit))
         }
       }.scrollable(ScrollDirection.Horizontal).height(48)
       Row() {
@@ -79,7 +79,7 @@ struct KeyboardPage {
             Button(item.title || item.body)
               .width('100%')
               .onClick(() => this.insertItem(item))
-          })
+          }, (item: ContentItem, index: number) => index + ':' + item.id)
         }.height(120)
       }
       if (this.mode === 't9') {
@@ -121,7 +121,7 @@ struct KeyboardPage {
     Row() {
       ForEach(labels, (label: string, index: number) => {
         KeyButton({ label: label, keyColor: this.skin.key, textColor: this.skin.text, onTap: (): void => this.onKey(values[index]) })
-      })
+      }, (label: string, index: number) => index + ':' + label)
     }.width('100%')
   }
 
@@ -167,6 +167,10 @@ struct KeyboardPage {
 
   choose(row: Candidate) {
     if (row.kind === 'image' && row.assetId) {
+      // 图片分支也要复位联想状态，否则上一次提交遗留的 associating=true
+      // 会让随后的 refresh() 继续用旧 lastCommit 拉出不相关的联想候选。
+      this.associating = false
+      this.lastCommit = ''
       this.pasteImage(row.assetId, row.itemId)
     } else {
       ImeHub.insert(row.commit)
@@ -202,22 +206,40 @@ struct KeyboardPage {
     if (ImeHub.context === undefined) {
       return
     }
+    // assetId 来自服务端，拒绝包含路径分隔符或 .. 的值，防止读取 assets 目录以外的文件。
+    if (assetId.includes('/') || assetId.includes('\\') || assetId.includes('..')) {
+      this.hint = '图片还没同步下来'
+      return
+    }
     let path = ImeHub.context.filesDir + '/assets/' + assetId
     if (!fs.accessSync(path)) {
       this.hint = '图片还没同步下来'
       return
     }
-    let file = fs.openSync(path, fs.OpenMode.READ_ONLY)
-    let stat = fs.statSync(path)
-    let buffer = new ArrayBuffer(stat.size)
-    fs.readSync(file.fd, buffer)
-    fs.closeSync(file)
-    let source = image.createImageSource(buffer)
-    let pixel = await source.createPixelMap()
-    let data = pasteboard.createData(pasteboard.MIMETYPE_PIXELMAP, pixel)
-    await pasteboard.getSystemPasteboard().setData(data)
-    source.release()
-    this.hint = '已复制图片，请在输入框粘贴'
-    this.note(itemId, 'image')
+    let source: image.ImageSource | undefined = undefined
+    try {
+      let file = fs.openSync(path, fs.OpenMode.READ_ONLY)
+      let buffer: ArrayBuffer
+      try {
+        let stat = fs.statSync(path)
+        buffer = new ArrayBuffer(stat.size)
+        fs.readSync(file.fd, buffer)
+      } finally {
+        fs.closeSync(file)
+      }
+      source = image.createImageSource(buffer)
+      let pixel = await source.createPixelMap()
+      let data = pasteboard.createData(pasteboard.MIMETYPE_PIXELMAP, pixel)
+      await pasteboard.getSystemPasteboard().setData(data)
+      this.hint = '已复制图片，请在输入框粘贴'
+      this.note(itemId, 'image')
+    } catch (e) {
+      this.hint = '图片复制失败'
+    } finally {
+      // 无论成败失败都释放 image source，避免资源泄露。
+      if (source !== undefined) {
+        source.release()
+      }
+    }
   }
 }

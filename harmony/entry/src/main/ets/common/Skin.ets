@@ -40,7 +40,19 @@ export function skinById(id: number): Skin {
       return skins[i]
     }
   }
+  // 未知 id（如持久化的皮肤已下架）仍回退到默认皮肤以保证 UI 可用，
+  // 但不再静默：记录一条警告，便于排查数据损坏/逻辑错误。
+  console.warn(`[Skin] skinById: unknown id ${id}, falling back to skins[0]`)
   return skins[0]
+}
+
+function skinExists(id: number): boolean {
+  for (let i = 0; i < skins.length; i++) {
+    if (skins[i].id === id) {
+      return true
+    }
+  }
+  return false
 }
 
 async function prefs(context: common.Context): Promise<dataPreferences.Preferences> {
@@ -70,8 +82,14 @@ export async function ownedSkins(context: common.Context): Promise<number[]> {
   let ids: number[] = []
   let parts = raw.split(',')
   for (let i = 0; i < parts.length; i++) {
-    let n = Number(parts[i])
-    if (!Number.isNaN(n)) {
+    // 逐个 token 去空白后校验：仅接受存在于皮肤表的非负整数，且去重，
+    // 避免空串/负数/小数/非法 id 污染 owned。
+    let part = parts[i].trim()
+    if (part.length === 0) {
+      continue
+    }
+    let n = Number(part)
+    if (Number.isInteger(n) && n >= 0 && skinExists(n) && ids.indexOf(n) < 0) {
       ids.push(n)
     }
   }
@@ -82,6 +100,11 @@ export async function ownedSkins(context: common.Context): Promise<number[]> {
 }
 
 export async function applySkin(context: common.Context, id: number): Promise<void> {
+  // 拒绝持久化不存在于皮肤表的 id，避免 owned/skin 落入非法值。
+  if (!Number.isInteger(id) || id < 0 || !skinExists(id)) {
+    console.warn(`[Skin] applySkin: rejected invalid id ${id}`)
+    return
+  }
   let owned = await ownedSkins(context)
   if (owned.indexOf(id) < 0) {
     owned.push(id)

@@ -12,42 +12,57 @@ class LexiconBin(private val data: ByteArray, private val charPrior: Map<String,
     private val initials: Map<String, IntArray>
     private val digits: Map<String, IntArray>
     private val heads: Map<String, IntArray>
-    private var exactInitials: Map<String, IntArray>? = null
+    // 双重检查锁定在锁外读取，@Volatile 避免其他线程观察到部分构造的 Map
+    @Volatile private var exactInitials: Map<String, IntArray>? = null
 
     init {
         require(data.size >= 16 && String(data, 0, 4, ASCII) == "SXL1") { "词表格式不对" }
         val count = u32(4)
         val sylCount = u32(8)
         val listsAt = u32(12)
+        // 头部声明的规模/偏移先做范围校验，避免截断或损坏的词表在后续游标运算里抛
+        // ArrayIndexOutOfBounds/NegativeArraySize/OOM，而是以清晰消息失败。用 Long 运算防止 Int 溢出。
+        val size = data.size.toLong()
+        require(listsAt.toLong() in 16..size) { "词表 listsAt 越界: $listsAt" }
+        require(sylCount.toLong() <= size) { "词表音节数异常: $sylCount" }
+        require(count.toLong() * 4 <= size) { "词表条目数异常: $count" }
         var cursor = 16
         syllables = Array(sylCount) {
+            require(cursor < data.size) { "词表音节区截断 @$cursor" }
             val len = data[cursor].toInt() and 0xff
             cursor += 1
+            require(cursor.toLong() + len <= size) { "词表音节长度越界 @$cursor len=$len" }
             val text = String(data, cursor, len, ASCII)
             cursor += len
             text
         }
         sylOf = syllables.withIndex().associate { it.value to it.index }
         while (cursor % 4 != 0) cursor++
+        require(cursor.toLong() + count.toLong() * 4 <= size) { "词表偏移区截断 @$cursor count=$count" }
         offsets = IntArray(count) {
             val value = u32(cursor)
             cursor += 4
             value
         }
         cursor = listsAt
+        require(cursor + 4 <= data.size) { "词表列表区截断 @$cursor" }
         val listCount = u32(cursor)
         cursor += 4
+        require(listCount.toLong() * 4 <= size) { "词表列表数异常: $listCount" }
         val ini = HashMap<String, IntArray>()
         val t9 = HashMap<String, IntArray>()
         val head = HashMap<String, IntArray>()
         repeat(listCount) {
+            require(cursor + 2 <= data.size) { "词表列表头截断 @$cursor" }
             val kind = data[cursor].toInt() and 0xff
             val keyLen = data[cursor + 1].toInt() and 0xff
             cursor += 2
+            require(cursor.toLong() + keyLen + 2 <= size) { "词表列表键越界 @$cursor keyLen=$keyLen" }
             val key = String(data, cursor, keyLen, UTF8)
             cursor += keyLen
             val n = u16(cursor)
             cursor += 2
+            require(cursor.toLong() + n.toLong() * 4 <= size) { "词表列表项截断 @$cursor n=$n" }
             val items = IntArray(n) {
                 val value = u32(cursor)
                 cursor += 4
@@ -148,8 +163,8 @@ class LexiconBin(private val data: ByteArray, private val charPrior: Map<String,
             val exact = ArrayList<Int>()
             val rest = ArrayList<Int>()
             for (index in matched) {
-                if (!seen.add(index)) continue
-                seen.remove(index)
+                // 只是成员判定，用 in 而非 add-then-remove，避免瞬时改动共享 seen（异常/控制流变化会留下脏标记）。
+                if (index in seen) continue
                 if (sylCount(index) == needed) exact.add(index) else rest.add(index)
             }
             for (index in exact.take(500)) if (seen.add(index)) into.add(index)
@@ -354,18 +369,11 @@ class LexiconBin(private val data: ByteArray, private val charPrior: Map<String,
         val initialCharCost = ImeRules.weight("initialCharCost")
         val looseCost = ImeRules.weight("looseCost")
         val weights = charFreq()
-        val bestInitial = IntArray(26) { -1 }
+        val bestInitTable = bestInitialWeights()
         fun initialBest(letter: Char): Int {
             val slot = letter - 'a'
             if (slot !in 0..25) return 0
-            if (bestInitial[slot] >= 0) return bestInitial[slot]
-            var best = 0
-            for (id in syllables.indices) {
-                val syl = syllables[id]
-                if (syl.isNotEmpty() && syl[0] == letter && id < weights.size && weights[id] > best) best = weights[id]
-            }
-            bestInitial[slot] = best
-            return best
+            return bestInitTable[slot]
         }
         for (i in 0 until n) {
             val acc = ArrayList<String>()
@@ -407,8 +415,7 @@ class LexiconBin(private val data: ByteArray, private val charPrior: Map<String,
                     var gain = edgeGain(wordAt(index), weight, syllables, loose) - abbrev
                     // 只打了一个首字母的单字（wozd 里的 d）最不确定，压一档，让「我知道」整词压过「我在的」。
                     if (syllables == 1 && acc[0].length == 1) gain -= initialCharCost
-                    val singleTail = tokens[j].length == 1 && syllables == 1
-                    edges[i].add(WordEdge(j + 1, wordAt(index), weight, loose, j + 1, false, gain, singleTail))
+                    edges[i].add(WordEdge(j + 1, wordAt(index), weight, loose, j + 1, false, gain))
                 }
             }
         }
@@ -501,7 +508,27 @@ class LexiconBin(private val data: ByteArray, private val charPrior: Map<String,
         return if (prior >= 300) prior - 300 else ImeRules.weight("initialCharGain")
     }
 
-    private var charFreqCache: IntArray? = null
+    // 热路径无锁读取，@Volatile 保证安全发布（避免看到未完全填充的 IntArray）；重复构建是幂等的
+    @Volatile private var charFreqCache: IntArray? = null
+
+    // 每个首字母的最佳单字权重是实例静态的（syllables + charFreq 固定），预计算一次并缓存，
+    // 避免每次 mixedSentencesFor 调用都线性扫全音节表。
+    @Volatile private var bestInitialCache: IntArray? = null
+    private fun bestInitialWeights(): IntArray {
+        bestInitialCache?.let { return it }
+        val weights = charFreq()
+        val best = IntArray(26)
+        for (id in syllables.indices) {
+            val syl = syllables[id]
+            if (syl.isEmpty()) continue
+            val slot = syl[0] - 'a'
+            if (slot !in 0..25) continue
+            val w = if (id < weights.size) weights[id] else 0
+            if (w > best[slot]) best[slot] = w
+        }
+        bestInitialCache = best
+        return best
+    }
 
     private fun charFreq(): IntArray {
         charFreqCache?.let { return it }
@@ -517,7 +544,13 @@ class LexiconBin(private val data: ByteArray, private val charPrior: Map<String,
         return weights
     }
 
-    private fun mixOptions(spell: String): List<String> {
+    // mixOptions 的结果只取决于 spell（charFreq/sylOf 是实例静态状态），matchMixed 每次敲键对每个
+    // 子跨度反复调用；用 memo 缓存避免重复排序/分配。返回的 List 只读，调用方不得修改。
+    private val mixOptionsCache = java.util.concurrent.ConcurrentHashMap<String, List<String>>()
+    private fun mixOptions(spell: String): List<String> =
+        mixOptionsCache.computeIfAbsent(spell) { computeMixOptions(spell) }
+
+    private fun computeMixOptions(spell: String): List<String> {
         val weights = charFreq()
         val ranked = PinyinEngine.syllablesStarting(spell).sortedWith(
             compareByDescending<String> {
@@ -874,8 +907,7 @@ class LexiconBin(private val data: ByteArray, private val charPrior: Map<String,
         val full: Int,
         val consumed: Int,
         val partial: Boolean,
-        val gain: Int,
-        val singleTail: Boolean = false
+        val gain: Int
     )
 
     private class PathState(

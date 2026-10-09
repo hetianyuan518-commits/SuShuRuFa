@@ -36,6 +36,12 @@ static NSString * const names[] = {@"浅灰日常", @"宣纸朱红", @"新叶", 
     NSWindow *_window;
 }
 - (void)show {
+    // 窗口已存在时直接重新前置，避免重复创建导致多窗口漂浮与旧窗口泄漏
+    if (_window) {
+        [_window makeKeyAndOrderFront:nil];
+        [NSApp activateIgnoringOtherApps:YES];
+        return;
+    }
     NSUserDefaults *defaults = [NSUserDefaults standardUserDefaults];
     if (![defaults boolForKey:@"susheng.privacy"]) {
         NSAlert *alert = [NSAlert new];
@@ -50,6 +56,8 @@ static NSString * const names[] = {@"浅灰日常", @"宣纸朱红", @"新叶", 
         [defaults setBool:YES forKey:@"susheng.privacy"];
     }
     _window = [[NSWindow alloc] initWithContentRect:NSMakeRect(0, 0, 420, 520) styleMask:NSWindowStyleMaskTitled | NSWindowStyleMaskClosable backing:NSBackingStoreBuffered defer:NO];
+    // ARC 下关闭窗口时 AppKit 默认会额外 release，与 strong ivar 叠加导致悬空指针
+    _window.releasedWhenClosed = NO;
     _window.title = @"苏晟输入法";
     NSView *content = [NSView new];
     _window.contentView = content;
@@ -85,8 +93,17 @@ static NSString * const names[] = {@"浅灰日常", @"宣纸朱红", @"新叶", 
 }
 - (void)pick:(id)sender {
     NSInteger idValue = [sender tag];
+    // sender.tag 直接索引 6 元素 names 数组；越界会读到垃圾值并被持久化为皮肤索引，先限定 0–5。
+    if (idValue < 0 || idValue > 5) return;
     [[NSUserDefaults standardUserDefaults] setInteger:idValue forKey:@"susheng.skin"];
-    [sender setTitle:[NSString stringWithFormat:@"%@ · 使用中", names[idValue]]];
+    // 刷新所有皮肤按钮，确保只有当前选中项带「· 使用中」后缀（只改被点按钮会遗留旧选中项的标记）。
+    for (NSView *sub in [(NSView *)sender superview].subviews) {
+        if (![sub isKindOfClass:[NSButton class]]) continue;
+        NSInteger tag = sub.tag;
+        if (tag < 0 || tag > 5) continue;
+        NSString *n = names[tag];
+        ((NSButton *)sub).title = (tag == idValue) ? [n stringByAppendingString:@" · 使用中"] : n;
+    }
 }
 @end
 

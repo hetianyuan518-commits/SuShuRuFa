@@ -96,35 +96,51 @@ export function metaNumber(db, key) {
   return Number(metaGet(db, key, '0'))
 }
 
+// 用单条 UPSERT 语句完成自增，避免“读取-计算-写回”分三步（即便当前为单进程同步执行，也保持原子语义）。
+function incrementMeta(db, key) {
+  db.prepare(`INSERT INTO meta(key, value) VALUES(?, '1')
+    ON CONFLICT(key) DO UPDATE SET value = CAST(CAST(meta.value AS INTEGER) + 1 AS TEXT)`).run(key)
+  return metaNumber(db, key)
+}
+
 function bump(db) {
-  const version = metaNumber(db, 'version') + 1
-  db.prepare('INSERT INTO meta(key, value) VALUES(?, ?) ON CONFLICT(key) DO UPDATE SET value = excluded.value').run('version', String(version))
-  return version
+  return incrementMeta(db, 'version')
 }
 
 export function bumpEpoch(db) {
-  const epoch = metaNumber(db, 'epoch') + 1
-  db.prepare('INSERT INTO meta(key, value) VALUES(?, ?) ON CONFLICT(key) DO UPDATE SET value = excluded.value').run('epoch', String(epoch))
-  return epoch
+  return incrementMeta(db, 'epoch')
+}
+
+// 种子账号密码：优先读取环境变量；未配置时生成随机一次性密码并告警，避免源码中硬编码默认凭据。
+function seedPassword(envKey, username) {
+  const fromEnv = process.env[envKey]
+  if (fromEnv) return fromEnv
+  const generated = randomBytes(12).toString('base64url')
+  console.warn(`[susheng] 种子账号 ${username} 未配置 ${envKey}，已生成随机密码：${generated}（请登录后立即修改）`)
+  return generated
 }
 
 function seed(db, dbPath) {
   const now = Date.now()
   const uploadDir = join(dirname(dbPath), 'uploads')
   mkdirSync(uploadDir, { recursive: true })
+  // 整个种子过程包在单个事务里：任一步失败则整体回滚，避免留下半成品数据库。
+  db.exec('BEGIN')
+  try {
   const groups = [
     ['g-all', '全员', 'company'],
     ['g-variety', '综艺组', 'department'],
     ['g-spark', '达人-星火', 'creator']
   ]
   const insertGroup = db.prepare('INSERT INTO groups(id, name, kind, created_at) VALUES(?, ?, ?, ?)')
-  for (const group of groups) insertGroup.run(...group, now)
+  // created_at 递增，保证 ORDER BY created_at 的分组顺序确定。
+  groups.forEach((group, index) => insertGroup.run(...group, now + index))
 
   const insertUser = db.prepare(`INSERT INTO users(id, username, password_hash, display_name, role, group_ids, disabled, created_at)
     VALUES(?, ?, ?, ?, ?, ?, 0, ?)`)
-  insertUser.run('u-admin', 'admin', hashPassword('susheng-admin'), '管理员', 'admin', JSON.stringify(['g-all', 'g-variety', 'g-spark']), now)
-  insertUser.run('u-staff', 'staff', hashPassword('susheng-staff'), '内部员工', 'staff', JSON.stringify(['g-all', 'g-variety']), now)
-  insertUser.run('u-creator', 'creator', hashPassword('susheng-creator'), '合作达人', 'creator', JSON.stringify(['g-spark']), now)
+  insertUser.run('u-admin', 'admin', hashPassword(seedPassword('SEED_ADMIN_PASSWORD', 'admin')), '管理员', 'admin', JSON.stringify(['g-all', 'g-variety', 'g-spark']), now)
+  insertUser.run('u-staff', 'staff', hashPassword(seedPassword('SEED_STAFF_PASSWORD', 'staff')), '内部员工', 'staff', JSON.stringify(['g-all', 'g-variety']), now)
+  insertUser.run('u-creator', 'creator', hashPassword(seedPassword('SEED_CREATOR_PASSWORD', 'creator')), '合作达人', 'creator', JSON.stringify(['g-spark']), now)
 
   const assetId = 'a-seal'
   const assetPath = join(uploadDir, assetId)
@@ -147,6 +163,11 @@ function seed(db, dbPath) {
   db.prepare('INSERT INTO meta(key, value) VALUES(?, ?)').run('version', String(samples.length))
   db.prepare('INSERT INTO meta(key, value) VALUES(?, ?)').run('epoch', '1')
   db.prepare('INSERT INTO meta(key, value) VALUES(?, ?)').run('seeded', '1')
+  db.exec('COMMIT')
+  } catch (error) {
+    db.exec('ROLLBACK')
+    throw error
+  }
 }
 
 export function publicUser(row) {
@@ -155,8 +176,18 @@ export function publicUser(row) {
     username: row.username,
     displayName: row.display_name,
     role: row.role,
-    groupIds: JSON.parse(row.group_ids),
+    groupIds: parseGroupIds(row.group_ids),
     disabled: Boolean(row.disabled)
+  }
+}
+
+// group_ids 存储为 JSON 文本；若为 NULL / 空 / 非法 JSON 则回退为空数组，避免解析抛异常。
+export function parseGroupIds(raw) {
+  try {
+    const parsed = JSON.parse(raw)
+    return Array.isArray(parsed) ? parsed : []
+  } catch {
+    return []
   }
 }
 
@@ -166,10 +197,17 @@ export function createSession(db, userId) {
   return token
 }
 
+// 会话令牌最长有效期（30 天）；超过则视为失效并顺手清理。
+const SESSION_TTL_MS = 30 * 24 * 60 * 60 * 1000
+
 export function userFromToken(db, token) {
   if (!token) return null
-  const session = db.prepare('SELECT user_id FROM sessions WHERE token = ?').get(token)
+  const session = db.prepare('SELECT user_id, created_at FROM sessions WHERE token = ?').get(token)
   if (!session) return null
+  if (Date.now() - session.created_at > SESSION_TTL_MS) {
+    db.prepare('DELETE FROM sessions WHERE token = ?').run(token)
+    return null
+  }
   const user = db.prepare('SELECT * FROM users WHERE id = ?').get(session.user_id)
   if (!user || user.disabled) return null
   return user

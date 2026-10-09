@@ -78,13 +78,16 @@ function add(freq, ...parts) {
   for (let i = 0; i + 1 < parts.length; i++) follow(parts[i], parts[i + 1])
 }
 
+// 每个前词的联想后继最多保留这么多条，限定候选规模（follow 与 handNext 合并时均遵此上限）。
+const FOLLOW_LIMIT = 16
+
 function follow(prev, word) {
   let list = next.get(prev)
   if (!list) {
     list = []
     next.set(prev, list)
   }
-  if (!list.includes(word) && list.length < 16) list.push(word)
+  if (!list.includes(word) && list.length < FOLLOW_LIMIT) list.push(word)
 }
 
 // 单词层：日常最常用的词，频率抬到分词词典之上，这样 jt 出今天而不是集团。
@@ -115,7 +118,6 @@ for (const word of replies) add(482, word)
 
 // 组合层：谁 + 怎么样 + 做什么。
 const subjects = ['我', '你', '他', '她', '我们', '你们', '他们', '大家', '咱们']
-const adverbs = ['也', '都', '就', '还', '不', '没', '先', '再', '又', '在', '已经', '马上', '一直', '可能', '应该', '肯定', '真的', '还是', '刚', '才', '还没', '一起']
 const verbObjects = {
   想: ['你', '要', '去', '吃', '看', '说', '问', '买', '试试', '知道', '一下', '回家', '睡觉', '休息', '吃饭', '你了', '好了'],
   要: ['去', '走', '吃饭', '睡觉', '回家', '出门', '上班', '下班', '开会', '加班', '休息', '开始', '出发', '买', '看', '说', '这个', '那个', '一个', '一杯'],
@@ -184,7 +186,7 @@ const verbObjects = {
   饿: ['了', '吗', '死了', '不饿'],
   困: ['了', '吗', '死了', '不困'],
   有空: ['吗', '了', '一起', '聊', '再说', '来'],
-  在家: ['吗', '吗', '呢', '休息', '睡觉', '等你', '吃饭']
+  在家: ['吗', '呢', '休息', '睡觉', '等你', '吃饭']
 }
 const extra = {
   一杯: 'yi bei', 一趟: 'yi tang', 我家: 'wo jia', 这边: 'zhe bian', 接: 'jie', 头: 'tou', 时候: 'shi hou', 底: 'di',
@@ -330,8 +332,8 @@ const handNext = {
 }
 for (const [prev, words] of Object.entries(handNext)) {
   const list = next.get(prev) || []
-  next.set(prev, words.concat(list.filter((word) => !words.includes(word))).slice(0, 16))
+  next.set(prev, words.concat(list.filter((word) => !words.includes(word))).slice(0, FOLLOW_LIMIT))
 }
 
 export const chatPhrases = [...best.values()]
-export const chatNext = Object.fromEntries([...next.entries()].sort((a, b) => (a[0] < b[0] ? -1 : 1)))
+export const chatNext = Object.fromEntries([...next.entries()].sort(([ka], [kb]) => Number(ka > kb) - Number(ka < kb)))

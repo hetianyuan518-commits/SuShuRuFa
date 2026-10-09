@@ -1,6 +1,10 @@
 <resources>
-    <color name="white">#FFFFFF</color>
+    <!-- 调色板仅面向浅色主题：本应用有意只支持浅色（见 themes.xml 的 Theme.AppCompat.Light），
+         键盘外观另由代码内 Skin 体系控制，不跟随系统深色模式，故不提供 values-night 变体。 -->
     <color name="ink">#1B140F</color>
     <color name="paper">#F3EADB</color>
-    <color name="cinnabar">#C4372C</color>
+    <!-- 原 #C4372C 在 paper 上对比度约 4.48:1，低于 WCAG AA 的 4.5:1；加深到 #B22E25（约 5.32:1）。 -->
+    <color name="cinnabar">#B22E25</color>
+    <!-- 自适应图标背景：用品牌色而非纯白，避免在浅色桌面/应用抽屉上图标不可见或极低对比。 -->
+    <color name="ic_launcher_background">#B22E25</color>
 </resources>

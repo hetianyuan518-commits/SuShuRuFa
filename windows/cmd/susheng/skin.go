@@ -1,6 +1,7 @@
 package main
 
 import (
+	"log"
 	"os"
 	"path/filepath"
 	"strconv"
@@ -54,12 +55,17 @@ func loadSkinID(dir string) int {
 		return 0
 	}
 	id, err := strconv.Atoi(strings.TrimSpace(string(data)))
-	if err != nil {
+	// 校验持久化的 ID 确实对应一个已知皮肤：skinByID 对未知 ID 会回退到 0 号，
+	// 因此回退后 id 不相等即说明存储值非法（例如皮肤数量变化后遗留的旧编号），归零处理。
+	if err != nil || skinByID(id).id != id {
 		return 0
 	}
 	return id
 }
 
 func saveSkinID(dir string, id int) {
-	_ = os.WriteFile(skinPath(dir), []byte(strconv.Itoa(id)), 0o644)
+	// 内存中的选择已更新，但若写盘失败下次启动会回退；记录日志避免静默丢失用户选择。
+	if err := os.WriteFile(skinPath(dir), []byte(strconv.Itoa(id)), 0o644); err != nil {
+		log.Printf("susheng: 保存皮肤选择失败 (id=%d): %v", id, err)
+	}
 }

@@ -13,12 +13,37 @@ var imeRulesJSON []byte
 
 var nextWords = map[string]map[string]bool{}
 
+// 调参常量对应 ime-rules.json 的 weights 段，init 时解码，使 Windows 与
+// Kotlin/JS 引擎共享同一份配置（此前只解码 next 段，weights 是死数据，
+// 改共享配置对 Windows 无效并会与其他平台漂移）。默认值与 JSON 一致。
+var (
+	weightLooseCost       = 40
+	weightInitialCharCost = 200
+	weightMixedFollowGain = 300
+)
+
 func init() {
 	var file struct {
-		Next map[string][]string `json:"next"`
+		Next    map[string][]string `json:"next"`
+		Weights struct {
+			LooseCost       *int `json:"looseCost"`
+			InitialCharCost *int `json:"initialCharCost"`
+			MixedFollowGain *int `json:"mixedFollowGain"`
+		} `json:"weights"`
 	}
-	if json.Unmarshal(imeRulesJSON, &file) != nil {
-		return
+	// ime-rules.json 是 //go:embed 的嵌入资产：解析失败是确定性的（重试无意义），
+	// 且会让 nextWords 为空、静默关闭联想加权。此处直接 panic 以在启动阶段暴露。
+	if err := json.Unmarshal(imeRulesJSON, &file); err != nil {
+		panic("pinyin: invalid ime-rules.json: " + err.Error())
+	}
+	if file.Weights.LooseCost != nil {
+		weightLooseCost = *file.Weights.LooseCost
+	}
+	if file.Weights.InitialCharCost != nil {
+		weightInitialCharCost = *file.Weights.InitialCharCost
+	}
+	if file.Weights.MixedFollowGain != nil {
+		weightMixedFollowGain = *file.Weights.MixedFollowGain
 	}
 	for word, list := range file.Next {
 		set := map[string]bool{}
@@ -211,15 +236,15 @@ func mixedSentencesFor(lexicon []LexEntry, tokens []string) []Candidate {
 							loose += extra
 						}
 					} else if len(acc[s]) == 1 {
-						if idx.sylFreq[syl]+40 < initialBest(acc[s][0]) {
-							abbrev += 40
+						if idx.sylFreq[syl]+weightLooseCost < initialBest(acc[s][0]) {
+							abbrev += weightLooseCost
 						}
 					}
 				}
 				freq := row.entry.F
 				gain := edgeGain(row.entry.W, freq, len(row.syls), loose) - abbrev
 				if len(row.syls) == 1 && len(acc[0]) == 1 {
-					gain -= 200
+					gain -= weightInitialCharCost
 				}
 				edges[i] = append(edges[i], mixEdge{to: j + 1, word: row.entry.W, freq: freq, loose: loose, gain: gain})
 			}
@@ -237,7 +262,7 @@ func mixedSentencesFor(lexicon []LexEntry, tokens []string) []Candidate {
 			for _, edge := range edges[i] {
 				bonus := 0
 				if follow[edge.word] {
-					bonus = 300
+					bonus = weightMixedFollowGain
 				}
 				beam[edge.to] = append(beam[edge.to], mixState{
 					score: state.score + edge.gain + bonus,

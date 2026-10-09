@@ -4,6 +4,9 @@ import json
 import sys
 from collections import defaultdict
 
+if len(sys.argv) < 4:
+    sys.exit(f"usage: {sys.argv[0]} <source> <lexicon> <out>")
+
 SOURCE = sys.argv[1]
 LEXICON = sys.argv[2]
 OUT = sys.argv[3]
@@ -29,8 +32,13 @@ with open(SOURCE, encoding="utf-8") as handle:
         parts = line.split()
         if len(parts) < 3 or not parts[1].isalpha() or not han(parts[0]):
             continue
-        word, code, weight = parts[0], parts[1].lower(), int(parts[2])
-        if len(word) != 1 or not code.isalpha():
+        try:
+            weight = int(parts[2])
+        except ValueError:
+            continue
+        word, code = parts[0], parts[1].lower()
+        # parts[1].isalpha() 已在上方校验，.lower() 保留字母性，无需重复判 code.isalpha()。
+        if len(word) != 1:
             continue
         rows[code].append((weight, word))
         previous = full.get(word)
@@ -39,9 +47,15 @@ with open(SOURCE, encoding="utf-8") as handle:
 
 with open(LEXICON, encoding="utf-8") as handle:
     lexicon = json.load(handle)
-for entry in lexicon["entries"]:
-    word = entry["w"]
-    freq = int(entry["f"])
+for entry in lexicon.get("entries", []):
+    word = entry.get("w")
+    raw_freq = entry.get("f")
+    if not word or raw_freq is None:
+        continue
+    try:
+        freq = int(raw_freq)
+    except (TypeError, ValueError):
+        continue
     # 只收常用短词。生僻词仍可以拆开用单字打，避免码表大到第一次按键要等很久。
     if freq < 280 or not han(word) or len(word) < 2 or len(word) > 4:
         continue
@@ -49,8 +63,6 @@ for entry in lexicon["entries"]:
     if any(code is None for code in codes):
         continue
     code = phrase_code(codes)
-    if not code:
-        continue
     rows[code].append((freq, word))
 
 with open(OUT, "w", encoding="utf-8") as handle:

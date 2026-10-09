@@ -97,7 +97,9 @@ def feature(strokes):
 
 
 def quantize(vec):
-    return np.clip(np.rint(vec * 127.0), -127, 127).astype(np.int16)
+    # 与 Kotlin 端 (hist[i] * 127.0).roundToInt() 对齐：np.rint 用四舍六入五成双，
+    # 在 .5 处会与 Kotlin 的“逢五进一”差 1。此处值非负，floor(x + 0.5) 匹配 Kotlin 语义。
+    return np.clip(np.floor(vec * 127.0 + 0.5), -127, 127).astype(np.int16)
 
 
 def main():
@@ -109,21 +111,17 @@ def main():
             row = json.loads(line)
             medians.setdefault(row["character"], row["medians"])
     packed = []
-    matrix = []
     missing = []
     for ch in chars:
         raw = medians.get(ch)
         if not raw:
             missing.append(ch)
             packed.append((0, np.zeros(DIM, np.int16)))
-            matrix.append(np.zeros(DIM))
             continue
         strokes = [[(float(x), -float(y)) for x, y in stroke] for stroke in raw]
         vec = feature(strokes)
-        matrix.append(vec)
         count = sum(1 for stroke in raw if len(stroke) >= 2)
         packed.append((count, quantize(vec)))
-    matrix = np.stack(matrix)
     labels = list(chars)
 
     def rank(strokes):

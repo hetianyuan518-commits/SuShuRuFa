@@ -71,7 +71,7 @@ function shell() {
       <aside class="spine">苏晟输入法 · 内容台</aside>
       <div class="main">
         <header class="top">
-          <h1>${esc(state.tab === 'items' ? '稿件' : state.tab === 'groups' ? '分组' : state.tab === 'users' ? '账号' : '使用')}</h1>
+          <h1>${esc({ items: '稿件', groups: '分组', users: '账号', usage: '使用' }[state.tab] || '')}</h1>
           <div class="who">${esc(state.user.displayName)} · ${esc(roleName[state.user.role] || '')}<br><button class="ghost" id="logout" type="button">离开</button></div>
         </header>
         <nav class="tabs">
@@ -112,7 +112,7 @@ function itemsPanel() {
     <div class="list">
       ${state.items.map((item, index) => `
         <article class="entry" style="animation-delay:${index * 30}ms">
-          <div class="stamp ${item.status}">${statusName[item.status] || ''}</div>
+          <div class="stamp ${esc(item.status)}">${statusName[item.status] || ''}</div>
           <div>
             <strong>${esc(item.title)}</strong>
             <div class="meta">${typeName[item.type] || ''} · ${esc(item.groupName)} · ${esc(item.shortcut || item.pinyin || '无短码')}</div>
@@ -139,8 +139,8 @@ function groupsPanel() {
     <div class="list">
       ${state.groups.map((group) => `
         <article class="entry">
-          <div class="stamp">${kindName[group.kind].slice(0, 1)}</div>
-          <div><strong>${esc(group.name)}</strong><div class="meta">${kindName[group.kind]} · ${esc(group.id)}</div></div>
+          <div class="stamp">${esc((kindName[group.kind] || group.kind || '?').slice(0, 1))}</div>
+          <div><strong>${esc(group.name)}</strong><div class="meta">${esc(kindName[group.kind] || '')} · ${esc(group.id)}</div></div>
           <button class="ghost" data-publish-group="${esc(group.id)}" type="button">发布组内草稿</button>
         </article>`).join('')}
     </div>`
@@ -164,8 +164,8 @@ function usersPanel() {
     <div class="list">
       ${state.users.map((user) => `
         <article class="entry">
-          <div class="stamp ${user.disabled ? 'off' : ''}">${roleName[user.role].slice(0, 1)}</div>
-          <div><strong>${esc(user.displayName)}</strong><div class="meta">${esc(user.username)} · ${roleName[user.role]} · ${(user.groupIds || []).map((id) => esc(groupName(id))).join(' / ') || '未分组'}</div></div>
+          <div class="stamp ${user.disabled ? 'off' : ''}">${esc((roleName[user.role] || user.role || '?').slice(0, 1))}</div>
+          <div><strong>${esc(user.displayName)}</strong><div class="meta">${esc(user.username)} · ${esc(roleName[user.role] || '')} · ${(user.groupIds || []).map((id) => esc(groupName(id))).join(' / ') || '未分组'}</div></div>
           <button class="ghost" data-disable="${esc(user.id)}" type="button">${user.disabled ? '恢复' : '停用'}</button>
         </article>`).join('')}
     </div>`
@@ -245,6 +245,7 @@ function bind() {
   document.querySelectorAll('[data-publish-group]').forEach((button) => button.addEventListener('click', () => act(`/api/admin/groups/${button.dataset.publishGroup}/publish`)))
   document.querySelectorAll('[data-disable]').forEach((button) => button.addEventListener('click', async () => {
     const user = state.users.find((row) => row.id === button.dataset.disable)
+    if (!user) return
     await act(`/api/admin/users/${user.id}`, 'PATCH', { disabled: !user.disabled })
   }))
 }

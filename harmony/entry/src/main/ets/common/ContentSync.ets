@@ -2,7 +2,7 @@ import http from '@ohos.net.http'
 import fs from '@ohos.file.fs'
 import dataPreferences from '@ohos.data.preferences'
 import common from '@ohos.app.ability.common'
-import { ContentItem } from './ContentRead'
+import { ContentItem, withUsageQueue } from './ContentRead'
 
 interface LoginBody {
   username: string
@@ -19,14 +19,16 @@ export async function login(context: common.Context, server: string, username: s
   let loginBody: LoginBody = { username: username, password: password }
   let payload = await postJson(base + '/api/auth/login', '', loginBody)
   let token = payload['token'] as string
-  let user = payload['user'] as Record<string, string>
   if (!token) {
     return payload['error'] as string || '登录失败'
   }
+  // user 可能缺失，先校验再取值，避免对 undefined 解引用崩溃。
+  let user = payload['user'] as Record<string, string> | undefined
+  let displayName = (user && user['displayName']) ? user['displayName'] : username
   let pref = await dataPreferences.getPreferences(context, 'susheng')
   await pref.put('server', base)
   await pref.put('token', token)
-  await pref.put('displayName', user['displayName'] || username)
+  await pref.put('displayName', displayName)
   await pref.flush()
   return '已登录'
 }
@@ -43,9 +45,16 @@ export async function sync(context: common.Context): Promise<string> {
   let url = server + '/api/sync?since=' + since + '&epoch=' + epoch
   let payload = await getJson(url, token)
   let incoming = payload['items'] as ContentItem[]
-  let responseSince = payload['since'] as number
-  let responseEpoch = payload['epoch'] as number
+  if (!Array.isArray(incoming)) {
+    incoming = []
+  }
+  let responseSince = (typeof payload['since'] === 'number') ? payload['since'] as number : 0
+  let responseEpoch = (typeof payload['epoch'] === 'number') ? payload['epoch'] as number : epoch
+  let nextServerVersion = (typeof payload['serverVersion'] === 'number') ? payload['serverVersion'] as number : since
   let current = JSON.parse(await pref.get('pack', '[]') as string) as ContentItem[]
+  if (!Array.isArray(current)) {
+    current = []
+  }
   let next: ContentItem[] = []
   if (!responseSince || responseEpoch !== epoch) {
     for (let i = 0; i < incoming.length; i++) {
@@ -57,24 +66,54 @@ export async function sync(context: common.Context): Promise<string> {
     next = merge(current, incoming)
   }
   await pref.put('pack', JSON.stringify(next))
-  await pref.put('serverVersion', payload['serverVersion'])
+  await pref.put('serverVersion', nextServerVersion)
   await pref.put('epoch', responseEpoch)
   await pref.flush()
   await downloadAssets(context, server, token, next)
   await flushUsage(context, server, token)
-  return '已同步到版本 ' + payload['serverVersion']
+  return '已同步到版本 ' + nextServerVersion
 }
 
 async function flushUsage(context: common.Context, server: string, token: string): Promise<void> {
-  let pref = await dataPreferences.getPreferences(context, 'susheng')
-  let raw = await pref.get('usageQueue', '[]') as string
-  let queue = JSON.parse(raw) as Record<string, string>[]
-  for (let i = 0; i < queue.length; i++) {
-    let usageBody: UsageBody = { itemId: queue[i]['itemId'], surface: queue[i]['surface'] }
-    await postJson(server + '/api/usage', token, usageBody)
-  }
-  await pref.put('usageQueue', '[]')
-  await pref.flush()
+  await withUsageQueue(async () => {
+    let pref = await dataPreferences.getPreferences(context, 'susheng')
+    let raw = await pref.get('usageQueue', '[]') as string
+    let queue = JSON.parse(raw) as Record<string, string>[]
+    if (!Array.isArray(queue)) {
+      return
+    }
+    let sent = 0
+    for (let i = 0; i < queue.length; i++) {
+      let usageBody: UsageBody = { itemId: queue[i]['itemId'], surface: queue[i]['surface'] }
+      try {
+        await postJson(server + '/api/usage', token, usageBody)
+        sent++
+      } catch (e) {
+        // 一旦上报失败就停止，保留剩余事件下次重试，避免丢失。
+        break
+      }
+    }
+    if (sent <= 0) {
+      return
+    }
+    // 重新读取，仅移除已成功上传的前 sent 条，保留 flush 期间新追加的事件。
+    let latestRaw = await pref.get('usageQueue', '[]') as string
+    let latest = JSON.parse(latestRaw) as Record<string, string>[]
+    if (!Array.isArray(latest)) {
+      return
+    }
+    for (let i = 0; i < sent && i < queue.length; i++) {
+      let target = queue[i]
+      for (let j = 0; j < latest.length; j++) {
+        if (latest[j]['itemId'] === target['itemId'] && latest[j]['surface'] === target['surface']) {
+          latest.splice(j, 1)
+          break
+        }
+      }
+    }
+    await pref.put('usageQueue', JSON.stringify(latest))
+    await pref.flush()
+  })
 }
 
 async function downloadAssets(context: common.Context, server: string, token: string, items: ContentItem[]): Promise<void> {
@@ -87,21 +126,35 @@ async function downloadAssets(context: common.Context, server: string, token: st
     if (!assetId) {
       continue
     }
+    // assetId 来自服务端，拒绝包含路径分隔符或 .. 的值，防止路径穿越覆盖任意文件。
+    if (assetId.includes('/') || assetId.includes('\\') || assetId.includes('..')) {
+      continue
+    }
     let path = dir + '/' + assetId
     if (fs.accessSync(path)) {
       continue
     }
     let client = http.createHttp()
-    let response = await client.request(server + '/api/assets/' + assetId, {
-      method: http.RequestMethod.GET,
-      header: { Authorization: 'Bearer ' + token },
-      expectDataType: http.HttpDataType.ARRAY_BUFFER
-    })
-    let bytes = response.result as ArrayBuffer
-    let file = fs.openSync(path, fs.OpenMode.CREATE | fs.OpenMode.WRITE_ONLY)
-    fs.writeSync(file.fd, bytes)
-    fs.closeSync(file)
-    client.destroy()
+    try {
+      let response = await client.request(server + '/api/assets/' + assetId, {
+        method: http.RequestMethod.GET,
+        header: { Authorization: 'Bearer ' + token },
+        expectDataType: http.HttpDataType.ARRAY_BUFFER
+      })
+      // 非 200 时不能把错误体当成资源写入，否则下次同步会误以为已下载。
+      if (response.responseCode !== 200) {
+        continue
+      }
+      let bytes = response.result as ArrayBuffer
+      let file = fs.openSync(path, fs.OpenMode.CREATE | fs.OpenMode.WRITE_ONLY)
+      try {
+        fs.writeSync(file.fd, bytes)
+      } finally {
+        fs.closeSync(file)
+      }
+    } finally {
+      client.destroy()
+    }
   }
 }
 
@@ -132,27 +185,33 @@ function merge(current: ContentItem[], incoming: ContentItem[]): ContentItem[] {
 
 async function postJson(url: string, token: string, body: LoginBody | UsageBody): Promise<Record<string, Object>> {
   let client = http.createHttp()
-  let header: Record<string, string> = { 'Content-Type': 'application/json' }
-  if (token) {
-    header['Authorization'] = 'Bearer ' + token
+  try {
+    let header: Record<string, string> = { 'Content-Type': 'application/json' }
+    if (token) {
+      header['Authorization'] = 'Bearer ' + token
+    }
+    let response = await client.request(url, {
+      method: http.RequestMethod.POST,
+      header: header,
+      extraData: JSON.stringify(body)
+    })
+    return JSON.parse(response.result as string) as Record<string, Object>
+  } finally {
+    client.destroy()
   }
-  let response = await client.request(url, {
-    method: http.RequestMethod.POST,
-    header: header,
-    extraData: JSON.stringify(body)
-  })
-  client.destroy()
-  return JSON.parse(response.result as string) as Record<string, Object>
 }
 
 async function getJson(url: string, token: string): Promise<Record<string, Object>> {
   let client = http.createHttp()
-  let response = await client.request(url, {
-    method: http.RequestMethod.GET,
-    header: { Authorization: 'Bearer ' + token }
-  })
-  client.destroy()
-  return JSON.parse(response.result as string) as Record<string, Object>
+  try {
+    let response = await client.request(url, {
+      method: http.RequestMethod.GET,
+      header: { Authorization: 'Bearer ' + token }
+    })
+    return JSON.parse(response.result as string) as Record<string, Object>
+  } finally {
+    client.destroy()
+  }
 }
 
 function trimSlash(value: string): string {

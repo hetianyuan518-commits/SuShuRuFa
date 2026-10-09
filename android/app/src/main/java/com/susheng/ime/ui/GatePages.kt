@@ -22,7 +22,8 @@ internal fun guidePage(activity: AppCompatActivity, onEnable: () -> Unit, onSwit
     scroll.addView(body)
     root.addView(scroll, weight())
     val actions = vcol(activity).apply { setPadding(dpi(activity, 28), dpi(activity, 8), dpi(activity, 28), dpi(activity, 28)) }
-    actions.addView(pill(activity, "第一步  启用苏晟输入法", 0xFFE4E6EA.toInt(), 0xFF9AA0A6.toInt(), onEnable))
+    // 第一步是用户必须点按的主操作，用可点击的强调色（浅橙底 + 橙字）而非灰底灰字，避免看起来像禁用。
+    actions.addView(pill(activity, "第一步  启用苏晟输入法", 0xFFFFE7D6.toInt(), ORANGE, onEnable))
     actions.addView(gap(activity, 12))
     actions.addView(pill(activity, "第二步  切换到苏晟输入法", ORANGE, 0xFFFFFFFF.toInt(), onSwitch))
     actions.addView(gap(activity, 10))
@@ -43,34 +44,36 @@ private fun guideCard(activity: AppCompatActivity, onSwitch: () -> Unit): View {
         setPadding(0, dpi(activity, 16), 0, dpi(activity, 16))
         setOnClickListener { onSwitch() }
     }
+    // 只查询一次已启用输入法列表（含当前默认项），供表头名称与下方列表复用，避免重复的 PM 查询。
+    val entries = enabledImeEntries(activity)
     head.addView(tv(activity, "默认输入法", 16f, INK), LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f))
-    head.addView(tv(activity, currentImeName(activity), 15f, MUTED))
+    head.addView(tv(activity, entries.firstOrNull { it.current }?.name ?: "未选择", 15f, MUTED))
     head.addView(tv(activity, "  ▾", 14f, MUTED))
     card.addView(head)
     card.addView(View(activity).apply {
         setBackgroundColor(LINE)
         layoutParams = LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, dpi(activity, 1))
     })
-    enabledImes(activity).forEach { name ->
+    entries.forEach { entry ->
         val row = vrow(activity).apply { setPadding(0, dpi(activity, 14), 0, dpi(activity, 14)) }
-        row.addView(tv(activity, "✓", 16f, 0xFF2F7FE0.toInt()).apply { setPadding(0, 0, dpi(activity, 10), 0) })
-        row.addView(tv(activity, name, 16f, INK))
+        // 仅当前默认输入法显示 ✓，其余用空标记保持对齐，避免把「已启用」误显示为「当前使用」。
+        val mark = if (entry.current) tv(activity, "✓", 16f, 0xFF2F7FE0.toInt()) else tv(activity, "　", 16f, MUTED)
+        row.addView(mark.apply { setPadding(0, 0, dpi(activity, 10), 0) })
+        row.addView(tv(activity, entry.name, 16f, INK))
         card.addView(row)
     }
     return card
 }
 
-private fun currentImeName(activity: AppCompatActivity): String {
-    val current = Settings.Secure.getString(activity.contentResolver, Settings.Secure.DEFAULT_INPUT_METHOD).orEmpty()
-    val imm = activity.getSystemService(InputMethodManager::class.java)
-    val match = imm.enabledInputMethodList.firstOrNull { it.id == current }
-    return match?.loadLabel(activity.packageManager)?.toString() ?: "未选择"
-}
+private class ImeEntry(val name: String, val current: Boolean)
 
-private fun enabledImes(activity: AppCompatActivity): List<String> {
+private fun enabledImeEntries(activity: AppCompatActivity): List<ImeEntry> {
     val imm = activity.getSystemService(InputMethodManager::class.java)
-    val names = imm.enabledInputMethodList.map { it.loadLabel(activity.packageManager).toString() }
-    return if (names.isEmpty()) listOf("苏晟输入法") else names
+        ?: return listOf(ImeEntry("苏晟输入法", true))
+    val current = Settings.Secure.getString(activity.contentResolver, Settings.Secure.DEFAULT_INPUT_METHOD).orEmpty()
+    val list = runCatching { imm.enabledInputMethodList }.getOrDefault(emptyList())
+    val entries = list.map { ImeEntry(it.loadLabel(activity.packageManager).toString(), it.id == current) }
+    return if (entries.isEmpty()) listOf(ImeEntry("苏晟输入法", true)) else entries
 }
 
 internal fun privacyPage(activity: AppCompatActivity, onAgree: () -> Unit, onReject: () -> Unit, onDoc: (String) -> Unit): View {

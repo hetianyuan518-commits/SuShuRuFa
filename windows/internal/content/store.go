@@ -4,15 +4,21 @@ import (
 	"bytes"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"io"
+	"log"
 	"net/http"
 	"os"
 	"path/filepath"
+	"strings"
 	"sync"
 	"time"
 
 	"susheng.dev/windows/internal/pinyin"
 )
+
+// 共享 HTTP 客户端：复用连接（keep-alive），避免每次请求新建 transport/连接。
+var httpClient = &http.Client{Timeout: 20 * time.Second}
 
 type Session struct {
 	Server      string `json:"server"`
@@ -148,13 +154,15 @@ func (s *Store) Sync() (string, error) {
 	next := Apply(current, incoming, responseSince, epoch, responseEpoch)
 	version := intFrom(payload["serverVersion"])
 	pack := Pack{ServerVersion: version, Epoch: responseEpoch, Items: next}
-	if err := writeJSON(filepath.Join(s.Dir, "content-pack.json"), pack); err != nil {
-		return "", err
-	}
+	// 先下载资源，全部成功后再落盘 pack 并更新内存：
+	// 若先写 pack 再下载，一旦下载失败会出现“磁盘领先内存”的不一致（同进程后续 Sync 会用旧 since/epoch，重启却加载新 pack）。
 	if err := downloadAssets(s.Dir, session, next); err != nil {
 		return "", err
 	}
-	flushUsage(s.Dir, session)
+	if err := writeJSON(filepath.Join(s.Dir, "content-pack.json"), pack); err != nil {
+		return "", err
+	}
+	s.flushUsage(session)
 	s.mu.Lock()
 	s.Items = next
 	s.ServerVersion = version
@@ -210,7 +218,12 @@ func (s *Store) QueueUsage(itemID, surface string) {
 }
 
 func (s *Store) AssetPath(id string) string {
-	return filepath.Join(s.Dir, "assets", id)
+	// 安全校验：id 来自服务端，必须是裸文件名；非法时返回空字符串，调用方需判空
+	name := filepath.Base(id)
+	if id == "" || name != id || name == "." || name == ".." || strings.ContainsAny(name, `/\`) {
+		return ""
+	}
+	return filepath.Join(s.Dir, "assets", name)
 }
 
 func (s *Store) PinyinItems(now int64) []pinyin.Item {
@@ -242,18 +255,43 @@ func (s *Store) PinyinItems(now int64) []pinyin.Item {
 	return out
 }
 
-func flushUsage(dir string, session Session) {
-	queue := readUsage(dir)
+// flushUsage 在锁保护下读取队列快照，POST 在锁外进行（避免长时间持锁阻塞 QueueUsage），
+// 完成后仅移除已成功上传的事件；失败的事件与 flush 期间新追加的事件均保留。
+func (s *Store) flushUsage(session Session) {
+	s.mu.RLock()
+	queue := readUsage(s.Dir)
+	s.mu.RUnlock()
 	if len(queue) == 0 || session.Token == "" {
 		return
 	}
+	uploaded := 0
 	for _, event := range queue {
-		_, _ = request(session.Server, "/api/usage", session.Token, "POST", map[string]string{
+		_, err := request(session.Server, "/api/usage", session.Token, "POST", map[string]string{
 			"itemId":  event.ItemID,
 			"surface": event.Surface,
 		})
+		if err != nil {
+			// 上传失败：停止本次 flush，未上传事件保留在队列中等待下次重试
+			break
+		}
+		uploaded++
 	}
-	_ = writeJSON(filepath.Join(dir, "usage-queue.json"), []UsageEvent{})
+	if uploaded == 0 {
+		return
+	}
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	// 按内容移除已成功上传的事件，不依赖顺序假设（QueueUsage 可能裁剪队头）
+	remaining := readUsage(s.Dir)
+	for _, event := range queue[:uploaded] {
+		for i, candidate := range remaining {
+			if candidate == event {
+				remaining = append(remaining[:i], remaining[i+1:]...)
+				break
+			}
+		}
+	}
+	_ = writeJSON(filepath.Join(s.Dir, "usage-queue.json"), remaining)
 }
 
 func readUsage(dir string) []UsageEvent {
@@ -277,27 +315,39 @@ func downloadAssets(dir string, session Session, items []SyncItem) error {
 		if item.AssetID == nil || *item.AssetID == "" {
 			continue
 		}
-		path := filepath.Join(assetDir, *item.AssetID)
+		// 安全校验：AssetID 来自服务端，必须是裸文件名，防止路径穿越写入任意文件
+		name := filepath.Base(*item.AssetID)
+		if name != *item.AssetID || name == "." || name == ".." || strings.ContainsAny(name, `/\`) {
+			continue
+		}
+		path := filepath.Join(assetDir, name)
 		if _, err := os.Stat(path); err == nil {
 			continue
 		}
-		req, err := http.NewRequest(http.MethodGet, session.Server+"/api/assets/"+*item.AssetID, nil)
+		req, err := http.NewRequest(http.MethodGet, session.Server+"/api/assets/"+name, nil)
 		if err != nil {
 			return err
 		}
 		req.Header.Set("Authorization", "Bearer "+session.Token)
-		client := &http.Client{Timeout: 20 * time.Second}
-		res, err := client.Do(req)
+		res, err := httpClient.Do(req)
 		if err != nil {
 			return err
 		}
-		body, err := io.ReadAll(res.Body)
+		// 先判状态码再读体：非 2xx 记录日志并跳过，避免把错误页当作资源写入。
+		// 不整体失败，以免单个坏资源阻断全部文本内容同步（AssetPath 对缺失文件应优雅降级）。
+		if res.StatusCode >= 400 {
+			res.Body.Close()
+			log.Printf("susheng: 资源下载失败 %s（HTTP %d），该条目将缺少图片", name, res.StatusCode)
+			continue
+		}
+		const maxAsset = 32 << 20 // 32 MiB 上限，防止超大/恶意响应耗尽内存
+		body, err := io.ReadAll(io.LimitReader(res.Body, maxAsset+1))
 		res.Body.Close()
 		if err != nil {
 			return err
 		}
-		if res.StatusCode >= 400 {
-			continue
+		if len(body) > maxAsset {
+			return fmt.Errorf("资源 %s 超过 %d 字节上限", name, maxAsset)
 		}
 		if err := os.WriteFile(path, body, 0o644); err != nil {
 			return err
@@ -325,8 +375,7 @@ func request(base, path, token, method string, body map[string]string) (map[stri
 	if body != nil {
 		req.Header.Set("Content-Type", "application/json")
 	}
-	client := &http.Client{Timeout: 20 * time.Second}
-	res, err := client.Do(req)
+	res, err := httpClient.Do(req)
 	if err != nil {
 		return nil, err
 	}

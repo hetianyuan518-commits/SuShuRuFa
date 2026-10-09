@@ -8,6 +8,12 @@ export const RULES = rulesTable
 const WEIGHT = RULES.weights
 const NEXT = new Map(Object.entries(RULES.next || {}).map(([word, list]) => [word, new Set(list)]))
 
+// 输入模式、稿件状态与类型的取值属于跨端协议契约（与各端引擎、content-pack.schema.json 一致）。
+// 集中为常量，避免控制流分支里因拼写错误而静默失效；仅本文件内部使用，故不导出。
+const MODE = { QWERTY: 'qwerty', T9: 't9' }
+const STATUS = { PUBLISHED: 'published' }
+const TYPE = { IMAGE: 'image', LEXICON: 'lexicon' }
+
 export function nextWords(word) {
   const text = word || ''
   const direct = RULES.next ? RULES.next[text] : null
@@ -178,23 +184,25 @@ function t9Score(raw, pinyin) {
 }
 
 function scorePinyin(raw, mode, pinyin) {
-  if (mode === 't9') return t9Score(raw, pinyin)
+  if (mode === MODE.T9) return t9Score(raw, pinyin)
   return qwertyScore(raw.toLowerCase(), pinyin)
 }
 
 function activeItems(items, now) {
   return (items || []).filter((item) => {
-    if (!item || item.deleted || item.status !== 'published') return false
-    if (item.validFrom && now < item.validFrom) return false
-    if (item.validTo && now > item.validTo) return false
+    if (!item || item.deleted || item.status !== STATUS.PUBLISHED) return false
+    // 用 != null 判断，避免 validFrom/validTo 为 0 时被当作“未设置”而失效。
+    if (item.validFrom != null && now < item.validFrom) return false
+    if (item.validTo != null && now > item.validTo) return false
     return true
   })
 }
 
 function officialCandidate(item, score) {
-  const image = item.type === 'image'
+  const image = item.type === TYPE.IMAGE
+  const text = !image && item.type === TYPE.LEXICON ? item.body : item.title
   return {
-    text: image ? item.title : (item.type === 'lexicon' ? item.body : item.title),
+    text,
     commit: image ? '' : item.body,
     source: 'official',
     kind: item.type,
@@ -217,7 +225,7 @@ function dedupe(list) {
   return out
 }
 
-export function candidates({ raw, mode = 'qwerty', lexicon = [], items = [], now = Date.now(), limit = 20 }) {
+export function candidates({ raw, mode = MODE.QWERTY, lexicon = [], items = [], now = Date.now(), limit = 20 }) {
   const input = (raw || '').trim().toLowerCase()
   if (!input) return []
   const pool = activeItems(items, now)
@@ -238,7 +246,11 @@ export function candidates({ raw, mode = 'qwerty', lexicon = [], items = [], now
     const typed = scorePinyin(input, mode, item.pinyin || '')
     if (typed > 0) rows.push(officialCandidate(item, typed + 1000000))
     const names = [item.title, ...(item.aliases || [])]
-    if (names.some((name) => name && (name === input || name.startsWith(input)))) {
+    if (names.some((name) => {
+      if (!name) return false
+      const lower = name.toLowerCase()
+      return lower === input || lower.startsWith(input)
+    })) {
       rows.push(officialCandidate(item, 1500000))
     }
   }
@@ -248,7 +260,7 @@ export function candidates({ raw, mode = 'qwerty', lexicon = [], items = [], now
     if (typed <= 0) continue
     let score = typed + (entry.f || 0)
     const letters = input.replace(/[^a-z]/g, '')
-    if (mode !== 't9' && letters.length >= 12 && (entry.f || 0) >= 300 && extendsByOneSyllable(letters, entry.p || '')) {
+    if (mode !== MODE.T9 && letters.length >= 12 && (entry.f || 0) >= 300 && extendsByOneSyllable(letters, entry.p || '')) {
       score += 800
     }
     rows.push({
@@ -262,7 +274,7 @@ export function candidates({ raw, mode = 'qwerty', lexicon = [], items = [], now
       score
     })
   }
-  if (mode !== 't9') {
+  if (mode !== MODE.T9) {
     const letters = input.replace(/[^a-z]/g, '')
     const parts = input.includes("'") ? input.split("'").map((part) => part.replace(/[^a-z]/g, '')) : null
     const singleInitials = parts && letters.length >= 2 && parts.every((part) => part.length <= 1)
@@ -289,7 +301,7 @@ export function associate({ last, lexicon = [], items = [], now = Date.now(), li
   if (!word) return []
   const rows = []
   for (const item of activeItems(items, now)) {
-    if (item.type === 'image') continue
+    if (item.type === TYPE.IMAGE) continue
     const names = [item.title, ...(item.aliases || [])]
     if (!names.includes(word)) continue
     rows.push(officialCandidate(item, 1000000))
@@ -788,8 +800,7 @@ function mixedSentencesFor(lexicon, tokens) {
           w: row.w,
           f: freq,
           loose,
-          gain,
-          singleTail: tokens[j].length === 1 && syllables === 1
+          gain
         })
       }
     }
@@ -1100,7 +1111,7 @@ function shortlist(lexicon, raw, mode) {
       out.push(row)
     }
   }
-  if (mode === 't9') {
+  if (mode === MODE.T9) {
     const digits = raw.replace(/[^2-9]/g, '')
     if (!digits) return []
     pushRows(index.t9.get(digits.length <= 5 ? digits : digits.slice(0, 5)))

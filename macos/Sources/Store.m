@@ -34,7 +34,7 @@ static NSString *TrimSlash(NSString *value) {
     return self;
 }
 
-- (NSArray *)items { return _items; }
+- (NSArray *)items { return [NSArray arrayWithArray:_items]; }
 
 - (NSURL *)file:(NSString *)name { return [_root URLByAppendingPathComponent:name]; }
 
@@ -50,6 +50,9 @@ static NSString *TrimSlash(NSString *value) {
 
 - (void)replaceItems:(NSArray *)items {
     [_items removeAllObjects];
+    // pack[@"items"] / json[@"items"] 来自服务端，可能被篡改或类型不符；
+    // 非数组直接快速枚举会崩溃，先做类型校验。
+    if (![items isKindOfClass:[NSArray class]]) return;
     for (NSDictionary *item in items) {
         if ([item isKindOfClass:[NSDictionary class]] && ![item[@"deleted"] boolValue]) [_items addObject:item];
     }
@@ -62,7 +65,15 @@ static NSString *TrimSlash(NSString *value) {
 }
 
 - (NSString *)assetPath:(NSString *)assetId {
-    return [[_root URLByAppendingPathComponent:@"assets" isDirectory:YES] URLByAppendingPathComponent:assetId].path;
+    // 安全校验：assetId 来自服务端，必须是裸文件名；拒绝路径分隔符与 ".."，防止路径穿越读写任意文件
+    if (![assetId isKindOfClass:[NSString class]] || assetId.length == 0) return nil;
+    if ([assetId rangeOfCharacterFromSet:[NSCharacterSet characterSetWithCharactersInString:@"/\\"]].location != NSNotFound) return nil;
+    if ([assetId containsString:@".."]) return nil;
+    NSURL *dir = [_root URLByAppendingPathComponent:@"assets" isDirectory:YES];
+    NSString *path = [dir URLByAppendingPathComponent:assetId].path;
+    // 双重保险：标准化后的路径必须仍在 assets 目录内
+    if (![[path stringByStandardizingPath] hasPrefix:[[dir.path stringByStandardizingPath] stringByAppendingString:@"/"]]) return nil;
+    return path;
 }
 
 - (void)loginServer:(NSString *)server username:(NSString *)username password:(NSString *)password done:(void (^)(NSString *))done {
@@ -71,7 +82,9 @@ static NSString *TrimSlash(NSString *value) {
         if (error) { done(error); return; }
         NSString *token = json[@"token"];
         if (token.length == 0) { done(json[@"error"] ?: @"登录失败"); return; }
-        NSString *name = json[@"user"][@"displayName"] ?: username;
+        // json[@"user"] 可能为 NSNull/数组/字符串；不先类型校验就对 displayName 发消息会因无法识别的选择子崩溃。
+        id user = json[@"user"];
+        NSString *name = ([user isKindOfClass:[NSDictionary class]] && [user[@"displayName"] isKindOfClass:[NSString class]]) ? user[@"displayName"] : username;
         NSDictionary *session = @{@"server": base, @"token": token, @"displayName": name ?: @""};
         [self writeJSON:session name:@"session.json"];
         done(@"已登录");
@@ -131,6 +144,8 @@ static NSString *TrimSlash(NSString *value) {
     if (!data) return @[];
     NSString *json = [[NSString alloc] initWithData:data encoding:NSUTF8StringEncoding];
     char *result = SushengQuery(json.UTF8String);
+    // C 契约（char *SushengQuery(const char *)）并不保证非 NULL；为 NULL 时 strlen 会解引用崩溃。
+    if (result == NULL) return @[];
     NSData *out = [NSData dataWithBytes:result length:strlen(result)];
     SushengFree(result);
     id rows = [NSJSONSerialization JSONObjectWithData:out options:0 error:nil];
@@ -144,19 +159,33 @@ static NSString *TrimSlash(NSString *value) {
 }
 
 - (void)flushUsage:(NSDictionary *)session done:(void (^)(void))done {
-    NSMutableArray *queue = [[self readUsage] mutableCopy];
-    if (queue.count == 0) { done(); return; }
+    NSArray *snapshot = [self readUsage];
+    if (snapshot.count == 0) { done(); return; }
+    __block NSUInteger uploaded = 0;
     __block void (^step)(void);
+    void (^finish)(void) = ^{
+        // 仅移除已成功上传的事件；flush 期间 reportUsage 追加的事件保留，失败的事件留待下次重试
+        NSMutableArray *remaining = [[self readUsage] mutableCopy];
+        for (NSUInteger i = 0; i < uploaded; i++) [remaining removeObject:snapshot[i]];
+        [self writeJSON:remaining name:@"usage-queue.json"];
+    };
     step = ^{
-        if (queue.count == 0) {
-            [self writeJSON:@[] name:@"usage-queue.json"];
+        if (uploaded >= snapshot.count) {
+            finish();
             step = nil;
             done();
             return;
         }
-        NSDictionary *event = queue.firstObject;
-        [queue removeObjectAtIndex:0];
+        NSDictionary *event = snapshot[uploaded];
         [self request:session[@"server"] path:@"/api/usage" token:session[@"token"] method:@"POST" body:event done:^(NSDictionary *json, NSString *error) {
+            if (error) {
+                // 上传失败：停止本次 flush，未上传事件保留在队列中
+                finish();
+                step = nil;
+                done();
+                return;
+            }
+            uploaded += 1;
             step();
         }];
     };
@@ -171,7 +200,9 @@ static NSString *TrimSlash(NSString *value) {
     for (NSDictionary *item in _items) {
         NSString *assetId = item[@"assetId"];
         if (![assetId isKindOfClass:[NSString class]] || assetId.length == 0) continue;
-        if (![[NSFileManager defaultManager] fileExistsAtPath:[self assetPath:assetId]]) [pending addObject:assetId];
+        NSString *path = [self assetPath:assetId];
+        if (!path) continue;  // 非法 assetId（含路径穿越）直接跳过
+        if (![[NSFileManager defaultManager] fileExistsAtPath:path]) [pending addObject:assetId];
     }
     __block NSUInteger index = 0;
     __block void (^step)(void);
@@ -182,12 +213,17 @@ static NSString *TrimSlash(NSString *value) {
             return;
         }
         NSString *assetId = pending[index++];
-        NSURL *url = [NSURL URLWithString:[NSString stringWithFormat:@"%@/api/assets/%@", session[@"server"], assetId]];
+        // assetId 拼接到 URL 路径；需百分号编码，且 URLWithString: 可能因非法字符返回 nil，
+        // nil 传给 requestWithURL: 会抛 NSInvalidArgumentException，故先判空。
+        NSString *encodedId = [assetId stringByAddingPercentEncodingWithAllowedCharacters:[NSCharacterSet URLPathAllowedCharacterSet]];
+        NSURL *url = [NSURL URLWithString:[NSString stringWithFormat:@"%@/api/assets/%@", session[@"server"], encodedId]];
+        if (!url) { dispatch_async(dispatch_get_main_queue(), step); return; }
         NSMutableURLRequest *req = [NSMutableURLRequest requestWithURL:url];
         [req setValue:[@"Bearer " stringByAppendingString:session[@"token"]] forHTTPHeaderField:@"Authorization"];
         [[[NSURLSession sharedSession] dataTaskWithRequest:req completionHandler:^(NSData *data, NSURLResponse *response, NSError *error) {
             NSHTTPURLResponse *http = (NSHTTPURLResponse *)response;
-            if (data && http.statusCode < 400) [data writeToFile:[self assetPath:assetId] atomically:YES];
+            NSString *dest = [self assetPath:assetId];
+            if (data && http.statusCode < 400 && dest) [data writeToFile:dest atomically:YES];
             dispatch_async(dispatch_get_main_queue(), step);
         }] resume];
     };

@@ -1,6 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://susheng.local/schema/content-pack.json",
+   "$comment": "本 schema 仅作为内容包结构契约文档，未在运行时用于校验。以下不变量无法用 JSON Schema 2020-12 表达（或会误拒合法状态），改由服务端与客户端代码保证：items 内 id 唯一；validFrom <= validTo；type=image 才使用 assetId/mime（但草稿图片可暂缺 assetId，故不能在 schema 强制 required）；deleted=true 时 status=unpublished；version 与 since 的增量关系。",
   "title": "苏晟输入法内容包",
   "type": "object",
   "additionalProperties": false,

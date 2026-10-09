@@ -50,6 +50,7 @@ class SushengInputMethodService : InputMethodService() {
     internal var skinId = 0
     private val clips = mutableListOf<String>()
     private val clipListener = ClipboardManager.OnPrimaryClipChangedListener { captureClip(silent = true) }
+    private var warmThread: Thread? = null
 
     override fun onCreate() {
         super.onCreate()
@@ -65,11 +66,14 @@ class SushengInputMethodService : InputMethodService() {
                 HandPinyin.ensure(this)
                 HandModel.ensure(this)
             }
-        }.apply { name = "susheng-lexicon" }.start()
+        }.apply { name = "susheng-lexicon" }.also { warmThread = it }.start()
     }
 
     override fun onDestroy() {
         if (::clipboard.isInitialized) clipboard.removePrimaryClipChangedListener(clipListener)
+        // 预热线程不应比 Service 活得更久；中断以尽快释放（I/O 中断由 runCatching 兜底）。
+        warmThread?.interrupt()
+        warmThread = null
         super.onDestroy()
     }
 
@@ -229,10 +233,19 @@ class SushengInputMethodService : InputMethodService() {
 
     internal fun onHandSample(token: Int, strokes: List<List<PointF>>) {
         Thread {
-            HandPinyin.ensure(this)
-            val bitmap = inkBitmap(strokes)
-            val chars = if (bitmap != null && HandModel.ensure(this)) HandModel.recognize(bitmap, 8) else emptyList()
-            bitmap?.recycle()
+            var bitmap: android.graphics.Bitmap? = null
+            // 用 try/catch/finally 包住识别：inkBitmap/recognize 抛异常时线程不会静默死亡，
+            // bitmap 总能回收，并向主线程 post 一个终态（空候选）。
+            val chars = try {
+                HandPinyin.ensure(this)
+                bitmap = inkBitmap(strokes)
+                val bmp = bitmap
+                if (bmp != null && HandModel.ensure(this)) HandModel.recognize(bmp, 8) else emptyList()
+            } catch (t: Throwable) {
+                emptyList()
+            } finally {
+                bitmap?.recycle()
+            }
             mainHandler.post {
                 if (chrome?.handToken() != token) return@post
                 if (chars.isEmpty()) return@post
@@ -451,8 +464,11 @@ class SushengInputMethodService : InputMethodService() {
 
     internal fun buzz(view: View) {
         if (!hapticOn) return
+        // 保存并恢复原值，避免永久改变复用 view 的声音反馈开关。
+        val prev = view.isSoundEffectsEnabled
         view.isSoundEffectsEnabled = false
         view.performHapticFeedback(android.view.HapticFeedbackConstants.KEYBOARD_TAP)
+        view.isSoundEffectsEnabled = prev
     }
 
     private fun isPassword(info: EditorInfo): Boolean {
@@ -584,8 +600,9 @@ class SushengInputMethodService : InputMethodService() {
             toast("图片还没同步下来")
             return
         }
-        val mime = "image/png"
         val uri = FileProvider.getUriForFile(this, "$packageName.fileprovider", file)
+        // MIME 由实际文件推导，避免把 JPG/WebP 当作 PNG 广播导致 commitContent 被拒。
+        val mime = contentResolver.getType(uri)?.takeIf { it.startsWith("image/") } ?: mimeFromName(file.name)
         val info = InputContentInfoCompat(uri, ClipDescription("苏晟图片", arrayOf(mime)), null)
         val editor = currentInputEditorInfo
         val connection = currentInputConnection
@@ -605,7 +622,7 @@ class SushengInputMethodService : InputMethodService() {
     }
 
     private fun captureClip(silent: Boolean): String? {
-        val clip = clipboard.primaryClip
+        val clip = runCatching { clipboard.primaryClip }.getOrNull()
         if (clip == null || clip.itemCount == 0) {
             if (!silent) toast("剪贴板是空的")
             return null
@@ -636,7 +653,15 @@ class SushengInputMethodService : InputMethodService() {
     private fun saveClips() {
         val array = JSONArray()
         clips.forEach { array.put(it) }
-        File(filesDir, "clipboard-history.json").writeText(array.toString())
+        // 写入失败（磁盘满/IO 错）不应崩溃 IME。
+        runCatching { File(filesDir, "clipboard-history.json").writeText(array.toString()) }
+    }
+
+    private fun mimeFromName(name: String): String = when (name.substringAfterLast('.', "").lowercase()) {
+        "jpg", "jpeg" -> "image/jpeg"
+        "webp" -> "image/webp"
+        "gif" -> "image/gif"
+        else -> "image/png"
     }
 
     private fun toast(message: String) {

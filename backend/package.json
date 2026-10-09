@@ -2,6 +2,9 @@
   "name": "susheng-ime-backend",
   "private": true,
   "type": "module",
+  "engines": {
+    "node": ">=22.5.0"
+  },
   "scripts": {
     "start": "node src/server.mjs",
     "test": "node --test test/api.test.mjs ../protocol/pinyin-engine.test.mjs"

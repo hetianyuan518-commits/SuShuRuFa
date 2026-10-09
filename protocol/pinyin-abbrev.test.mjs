@@ -14,7 +14,7 @@ const cases = JSON.parse(readFileSync(join(here, 'pinyin-abbrev-cases.json'), 'u
 
 // 首选 / 前五 的最低通过率（百分比）。
 // 现状：全简拼 90 / 97，末字首字母 95 / 99，第二个字首字母 96 / 97（2026-10，21787 条）。
-export const ABBREV_THRESHOLDS = {
+const ABBREV_THRESHOLDS = {
   ini: { top1: 86, top5: 94 },
   tail: { top1: 92, top5: 97 },
   mid: { top1: 92, top5: 94 }
@@ -36,7 +36,16 @@ function measure(kind) {
   return { total: rows.length, top1, top5, misses }
 }
 
-for (const kind of Object.keys(ABBREV_THRESHOLDS)) {
+// 种类从用例文件推导，并与卡线表交叉校验：任一侧新增/漏配种类都会让测试立即失败，
+// 避免用例与阈值不同步时“静默跳过、构建仍绿”。
+const KINDS = [...new Set(cases.map((row) => row[0]))]
+assert.deepEqual(
+  KINDS.slice().sort(),
+  Object.keys(ABBREV_THRESHOLDS).sort(),
+  '用例种类与卡线种类不一致'
+)
+
+for (const kind of KINDS) {
   test(`${NAMES[kind]}：首选和前五的通过率不低于卡线`, () => {
     const { total, top1, top5, misses } = measure(kind)
     assert.ok(total >= 50, `${NAMES[kind]} 用例只有 ${total} 条`)
@@ -44,8 +53,10 @@ for (const kind of Object.keys(ABBREV_THRESHOLDS)) {
     const rate5 = Math.floor((top5 * 100) / total)
     console.log(`${NAMES[kind]} ${total} 条：首选 ${top1}（${rate1}%），前五 ${top5}（${rate5}%）`)
     for (const line of misses.slice(0, 20)) console.log('  ' + line)
+    // 把未命中样例附进断言消息，即便 CI 吞掉 console 输出，失败信息也能自解释。
+    const detail = misses.slice(0, 20).join(' | ')
     const want = ABBREV_THRESHOLDS[kind]
-    assert.ok(rate1 >= want.top1, `${NAMES[kind]} 首选 ${rate1}% 低于 ${want.top1}%`)
-    assert.ok(rate5 >= want.top5, `${NAMES[kind]} 前五 ${rate5}% 低于 ${want.top5}%`)
+    assert.ok(rate1 >= want.top1, `${NAMES[kind]} 首选 ${rate1}% 低于 ${want.top1}%：${detail}`)
+    assert.ok(rate5 >= want.top5, `${NAMES[kind]} 前五 ${rate5}% 低于 ${want.top5}%：${detail}`)
   })
 }

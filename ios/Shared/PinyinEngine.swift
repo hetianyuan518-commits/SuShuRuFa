@@ -194,7 +194,27 @@ enum PinyinEngine {
         return got.syls
     }
 
+    // syllablesOf 是纯函数：结果只取决于 pinyin 字符串与静态 syllables 集合，
+    // 故可永久缓存、无需随词库变化失效。candidates 逐键会对全部 lexicon entry 重复
+    // 调用它（→ segmentFull → segmentAllowPartial），缓存后消除重复分段的主要开销。
+    private static let syllablesOfLock = NSLock()
+    private static var syllablesOfCache: [String: [String]?] = [:]
+
     static func syllablesOf(_ pinyin: String) -> [String]? {
+        syllablesOfLock.lock()
+        if let hit = syllablesOfCache[pinyin] {
+            syllablesOfLock.unlock()
+            return hit
+        }
+        syllablesOfLock.unlock()
+        let result = computeSyllablesOf(pinyin)
+        syllablesOfLock.lock()
+        syllablesOfCache[pinyin] = result
+        syllablesOfLock.unlock()
+        return result
+    }
+
+    private static func computeSyllablesOf(_ pinyin: String) -> [String]? {
         let parts = pinyin.lowercased().split { $0.isWhitespace }.map { String($0).filter { $0.isLetter && $0.isASCII } }.filter { !$0.isEmpty }
         if parts.isEmpty { return nil }
         if parts.count > 1 { return parts.allSatisfy { syllables.contains($0) } ? parts : nil }

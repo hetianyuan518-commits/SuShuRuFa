@@ -64,7 +64,10 @@ private fun storePage(activity: AppCompatActivity, onApply: (Int) -> Unit): View
             override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) = Unit
             override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) = Unit
             override fun afterTextChanged(s: Editable?) {
-                query = s?.toString()?.trim().orEmpty()
+                // 修剪后的查询未变化时跳过 refill，避免每次敲键都重建全部卡片。
+                val next = s?.toString()?.trim().orEmpty()
+                if (next == query) return
+                query = next
                 refill()
             }
         })
@@ -108,35 +111,30 @@ private fun markTab(view: TextView, selected: Boolean) {
 
 private fun fillSkins(activity: AppCompatActivity, grid: LinearLayout, query: String, onApply: (Int) -> Unit) {
     val items = KeyboardSkins.skins.filter { query.isEmpty() || it.name.contains(query) || it.blurb.contains(query) }
-    if (items.isEmpty()) {
-        grid.addView(tv(activity, "没有找到这套皮肤", 14f, MUTED).apply { setPadding(0, dpi(activity, 24), 0, 0) })
-        return
-    }
-    items.chunked(2).forEach { pair ->
-        val line = vrow(activity)
-        pair.forEachIndexed { index, skin ->
-            val cell = skinCard(activity, skin, onApply)
-            line.addView(cell, LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f).apply {
-                if (index == 0) marginEnd = dpi(activity, 6) else marginStart = dpi(activity, 6)
-                bottomMargin = dpi(activity, 12)
-            })
-        }
-        if (pair.size == 1) line.addView(View(activity), LinearLayout.LayoutParams(0, 1, 1f))
-        grid.addView(line)
-    }
+    fillCards(activity, grid, items, "没有找到这套皮肤") { skinCard(activity, it, onApply) }
 }
 
 private fun fillSets(activity: AppCompatActivity, grid: LinearLayout, query: String, onApply: (Int) -> Unit) {
     val items = KeyboardSkins.sets.filter { query.isEmpty() || it.name.contains(query) || it.blurb.contains(query) }
+    fillCards(activity, grid, items, "没有找到这套装扮") { setCard(activity, it, onApply) }
+}
+
+// 皮肤/套装共用同一套两列网格构建逻辑，仅数据源、空态文案和卡片工厂不同。
+private fun <T> fillCards(
+    activity: AppCompatActivity,
+    grid: LinearLayout,
+    items: List<T>,
+    emptyText: String,
+    cardFactory: (T) -> View
+) {
     if (items.isEmpty()) {
-        grid.addView(tv(activity, "没有找到这套装扮", 14f, MUTED).apply { setPadding(0, dpi(activity, 24), 0, 0) })
+        grid.addView(tv(activity, emptyText, 14f, MUTED).apply { setPadding(0, dpi(activity, 24), 0, 0) })
         return
     }
     items.chunked(2).forEach { pair ->
         val line = vrow(activity)
-        pair.forEachIndexed { index, set ->
-            val cell = setCard(activity, set, onApply)
-            line.addView(cell, LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f).apply {
+        pair.forEachIndexed { index, item ->
+            line.addView(cardFactory(item), LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f).apply {
                 if (index == 0) marginEnd = dpi(activity, 6) else marginStart = dpi(activity, 6)
                 bottomMargin = dpi(activity, 12)
             })
@@ -189,12 +187,23 @@ private fun useButton(activity: AppCompatActivity, current: Boolean, click: () -
     }
 }
 
+private val PHRASE_TYPES = setOf("script", "tweet", "promo")
+
+// 判定是否为本机/模拟器回环地址（开发调试用），这些地址允许明文 http。
+private fun isLoopbackHost(host: String): Boolean {
+    val authority = host.removePrefix("http://").removePrefix("https://").substringBefore('/')
+    return when (authority.substringBefore(':')) {
+        "10.0.2.2", "localhost", "127.0.0.1" -> true
+        else -> false
+    }
+}
+
 private fun phrasePage(activity: AppCompatActivity, repo: ContentRepository, onSettings: () -> Unit): View {
     val root = vcol(activity, PAGE)
     root.addView(tv(activity, "语录", 22f, INK, true).apply { setPadding(dpi(activity, 20), dpi(activity, 18), dpi(activity, 20), dpi(activity, 8)) })
     val scroll = ScrollView(activity).apply { isVerticalScrollBarEnabled = false }
     val box = vcol(activity).apply { setPadding(dpi(activity, 16), 0, dpi(activity, 16), dpi(activity, 20)) }
-    val items = repo.items.filter { it.type in setOf("script", "tweet", "promo") && !it.deleted && it.status == "published" }
+    val items = repo.items.filter { it.type in PHRASE_TYPES && !it.deleted && it.status == "published" }
     if (items.isEmpty()) {
         box.addView(tv(activity, "登录并同步后，这里会出现公司话术、推文和宣发。", 14f, MUTED).apply {
             setPadding(dpi(activity, 4), dpi(activity, 12), dpi(activity, 4), dpi(activity, 16))
@@ -327,12 +336,18 @@ internal fun settingsPage(
     box.addView(password)
     box.addView(gap(activity, 8))
     box.addView(pill(activity, "登录", ORANGE, 0xFFFFFFFF.toInt()) {
+        val host = server.text.toString().trim()
+        // 非 TLS 主机拒绝提交凭据，避免账号/密码明文出网；仅放行本机/模拟器回环地址用于开发调试。
+        if (!host.startsWith("https://") && !isLoopbackHost(host)) {
+            status.text = "为保护账号安全，请填写 https:// 地址（本机调试地址除外）"
+            return@pill
+        }
         status.text = "正在登录"
-        val host = server.text.toString()
         val user = username.text.toString()
         val pass = password.text.toString()
         Thread {
             val message = runCatching { repo.login(host, user, pass) }.getOrElse { it.message ?: "登录失败" }
+            if (activity.isFinishing || activity.isDestroyed) return@Thread
             activity.runOnUiThread { status.text = message }
         }.start()
     })
@@ -340,8 +355,12 @@ internal fun settingsPage(
     box.addView(pill(activity, "同步内容包", 0xFFFFF1E8.toInt(), ORANGE) {
         status.text = "正在同步"
         Thread {
-            val message = runCatching { repo.sync() }.getOrElse { it.message ?: "同步失败" }
-            repo.loadLocal()
+            val message = runCatching {
+                val result = repo.sync()
+                repo.loadLocal()
+                result
+            }.getOrElse { it.message ?: "同步失败" }
+            if (activity.isFinishing || activity.isDestroyed) return@Thread
             activity.runOnUiThread { status.text = "$message · ${repo.items.size} 条" }
         }.start()
     })

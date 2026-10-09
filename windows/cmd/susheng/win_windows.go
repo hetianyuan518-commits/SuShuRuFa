@@ -3,7 +3,9 @@
 package main
 
 import (
+	"log"
 	"os"
+	"runtime"
 	"sync"
 	"time"
 	"unsafe"
@@ -98,24 +100,24 @@ type wndClass struct {
 }
 
 type paintStruct struct {
-	Hdc        uintptr
-	Erase      int32
-	Rc         rect
-	Restore    int32
-	IncUpdate  int32
-	Reserved   [32]byte
+	Hdc       uintptr
+	Erase     int32
+	Rc        rect
+	Restore   int32
+	IncUpdate int32
+	Reserved  [32]byte
 }
 
 type guiInfo struct {
-	Size       uint32
-	Flags      uint32
-	Active     uintptr
-	Focus      uintptr
-	Capture    uintptr
-	MenuOwner  uintptr
-	Move       uintptr
-	Caret      uintptr
-	CaretRect  rect
+	Size      uint32
+	Flags     uint32
+	Active    uintptr
+	Focus     uintptr
+	Capture   uintptr
+	MenuOwner uintptr
+	Move      uintptr
+	Caret     uintptr
+	CaretRect rect
 }
 
 type notifyIcon struct {
@@ -157,58 +159,60 @@ var (
 	kernel32 = windows.NewLazySystemDLL("kernel32.dll")
 	shell32  = windows.NewLazySystemDLL("shell32.dll")
 
-	procRegisterClass   = user32.NewProc("RegisterClassExW")
-	procCreateWindow    = user32.NewProc("CreateWindowExW")
-	procDefWindow       = user32.NewProc("DefWindowProcW")
-	procGetMessage      = user32.NewProc("GetMessageW")
-	procTranslate       = user32.NewProc("TranslateMessage")
-	procDispatch        = user32.NewProc("DispatchMessageW")
-	procPostQuit        = user32.NewProc("PostQuitMessage")
-	procPostMessage     = user32.NewProc("PostMessageW")
-	procShowWindow      = user32.NewProc("ShowWindow")
-	procMoveWindow      = user32.NewProc("MoveWindow")
-	procInvalidate      = user32.NewProc("InvalidateRect")
-	procBeginPaint      = user32.NewProc("BeginPaint")
-	procEndPaint        = user32.NewProc("EndPaint")
-	procTextOut         = gdi32.NewProc("TextOutW")
-	procSetBkColor      = gdi32.NewProc("SetBkColor")
-	procSetTextColor    = gdi32.NewProc("SetTextColor")
-	procCreateSolid     = gdi32.NewProc("CreateSolidBrush")
-	procFillRect        = user32.NewProc("FillRect")
-	procDeleteObject    = gdi32.NewProc("DeleteObject")
-	procCreateFont      = gdi32.NewProc("CreateFontW")
-	procSelectObject    = gdi32.NewProc("SelectObject")
-	procGetClientRect   = user32.NewProc("GetClientRect")
-	procSetWindowsHook  = user32.NewProc("SetWindowsHookExW")
-	procCallNext        = user32.NewProc("CallNextHookEx")
-	procUnhook          = user32.NewProc("UnhookWindowsHookEx")
-	procSendInput       = user32.NewProc("SendInput")
-	procGetForeground   = user32.NewProc("GetForegroundWindow")
-	procSetForeground   = user32.NewProc("SetForegroundWindow")
-	procGetWindowThread = user32.NewProc("GetWindowThreadProcessId")
-	procGetGUIThread    = user32.NewProc("GetGUIThreadInfo")
-	procGetWindowLong   = user32.NewProc("GetWindowLongPtrW")
-	procSendMessage     = user32.NewProc("SendMessageW")
-	procGetAsyncKey     = user32.NewProc("GetAsyncKeyState")
-	procGetCursorPos    = user32.NewProc("GetCursorPos")
-	procLoadIcon        = user32.NewProc("LoadIconW")
-	procShellNotify     = shell32.NewProc("Shell_NotifyIconW")
-	procCreatePopup     = user32.NewProc("CreatePopupMenu")
-	procAppendMenu      = user32.NewProc("AppendMenuW")
-	procTrackPopup      = user32.NewProc("TrackPopupMenu")
-	procDestroyMenu     = user32.NewProc("DestroyMenu")
-	procGetWindowText   = user32.NewProc("GetWindowTextW")
-	procSetWindowText   = user32.NewProc("SetWindowTextW")
-	procIsChild         = user32.NewProc("IsChild")
-	procOpenClipboard   = user32.NewProc("OpenClipboard")
-	procEmptyClipboard  = user32.NewProc("EmptyClipboard")
-	procSetClipboard    = user32.NewProc("SetClipboardData")
-	procCloseClipboard  = user32.NewProc("CloseClipboard")
-	procGlobalAlloc     = kernel32.NewProc("GlobalAlloc")
-	procGlobalLock      = kernel32.NewProc("GlobalLock")
-	procGlobalUnlock    = kernel32.NewProc("GlobalUnlock")
-	procGetModule       = kernel32.NewProc("GetModuleHandleW")
-	procMessageBox      = user32.NewProc("MessageBoxW")
+	procRegisterClass      = user32.NewProc("RegisterClassExW")
+	procCreateWindow       = user32.NewProc("CreateWindowExW")
+	procDefWindow          = user32.NewProc("DefWindowProcW")
+	procGetMessage         = user32.NewProc("GetMessageW")
+	procTranslate          = user32.NewProc("TranslateMessage")
+	procDispatch           = user32.NewProc("DispatchMessageW")
+	procPostQuit           = user32.NewProc("PostQuitMessage")
+	procPostMessage        = user32.NewProc("PostMessageW")
+	procShowWindow         = user32.NewProc("ShowWindow")
+	procMoveWindow         = user32.NewProc("MoveWindow")
+	procInvalidate         = user32.NewProc("InvalidateRect")
+	procBeginPaint         = user32.NewProc("BeginPaint")
+	procEndPaint           = user32.NewProc("EndPaint")
+	procTextOut            = gdi32.NewProc("TextOutW")
+	procSetBkColor         = gdi32.NewProc("SetBkColor")
+	procSetTextColor       = gdi32.NewProc("SetTextColor")
+	procCreateSolid        = gdi32.NewProc("CreateSolidBrush")
+	procFillRect           = user32.NewProc("FillRect")
+	procDeleteObject       = gdi32.NewProc("DeleteObject")
+	procCreateFont         = gdi32.NewProc("CreateFontW")
+	procSelectObject       = gdi32.NewProc("SelectObject")
+	procGetClientRect      = user32.NewProc("GetClientRect")
+	procSetWindowsHook     = user32.NewProc("SetWindowsHookExW")
+	procCallNext           = user32.NewProc("CallNextHookEx")
+	procUnhook             = user32.NewProc("UnhookWindowsHookEx")
+	procSendInput          = user32.NewProc("SendInput")
+	procGetForeground      = user32.NewProc("GetForegroundWindow")
+	procSetForeground      = user32.NewProc("SetForegroundWindow")
+	procGetWindowThread    = user32.NewProc("GetWindowThreadProcessId")
+	procGetGUIThread       = user32.NewProc("GetGUIThreadInfo")
+	procGetWindowLong      = user32.NewProc("GetWindowLongPtrW")
+	procSendMessage        = user32.NewProc("SendMessageW")
+	procSendMessageTimeout = user32.NewProc("SendMessageTimeoutW")
+	procGetAsyncKey        = user32.NewProc("GetAsyncKeyState")
+	procGetCursorPos       = user32.NewProc("GetCursorPos")
+	procLoadIcon           = user32.NewProc("LoadIconW")
+	procShellNotify        = shell32.NewProc("Shell_NotifyIconW")
+	procCreatePopup        = user32.NewProc("CreatePopupMenu")
+	procAppendMenu         = user32.NewProc("AppendMenuW")
+	procTrackPopup         = user32.NewProc("TrackPopupMenu")
+	procDestroyMenu        = user32.NewProc("DestroyMenu")
+	procGetWindowText      = user32.NewProc("GetWindowTextW")
+	procSetWindowText      = user32.NewProc("SetWindowTextW")
+	procIsChild            = user32.NewProc("IsChild")
+	procOpenClipboard      = user32.NewProc("OpenClipboard")
+	procEmptyClipboard     = user32.NewProc("EmptyClipboard")
+	procSetClipboard       = user32.NewProc("SetClipboardData")
+	procCloseClipboard     = user32.NewProc("CloseClipboard")
+	procGlobalAlloc        = kernel32.NewProc("GlobalAlloc")
+	procGlobalFree         = kernel32.NewProc("GlobalFree")
+	procGlobalLock         = kernel32.NewProc("GlobalLock")
+	procGlobalUnlock       = kernel32.NewProc("GlobalUnlock")
+	procGetModule          = kernel32.NewProc("GetModuleHandleW")
+	procMessageBox         = user32.NewProc("MessageBoxW")
 
 	current  *desktop
 	hookFunc uintptr
@@ -216,6 +220,9 @@ var (
 )
 
 func run(store *content.Store, lex []pinyin.LexEntry) {
+	// 将本 goroutine 钉固定在当前 OS 线程：SetWindowsHookExW(WH_KEYBOARD_LL) 的回调在安装线程上派发，
+	// 且该线程必须持续抽消息；若 goroutine 被调度到另一个 M，低级键盘钩子会停止触发（或因超时被移除），导致按键处理静默失效。
+	runtime.LockOSThread()
 	current = &desktop{
 		store:    store,
 		lex:      lex,
@@ -248,16 +255,28 @@ func run(store *content.Store, lex []pinyin.LexEntry) {
 	current.settings = current.createSettings(settingsClass)
 	current.addTray()
 	current.hook = setHook()
+	if current.hook == 0 {
+		// SetWindowsHookExW 失败返回 0：不检查会跑起一个完全无法拦截按键的输入法且无任何提示。
+		log.Printf("susheng: SetWindowsHookExW 失败，键盘钩子未安装，输入法无法拦截按键")
+	}
 	var msg winMsg
 	for {
 		ret, _, _ := procGetMessage.Call(uintptr(unsafe.Pointer(&msg)), 0, 0, 0)
-		if int32(ret) <= 0 {
+		if int32(ret) == -1 {
+			// GetMessageW 失败（如无效 HWND/队列状态）：记录并退出，避免误当作 WM_QUIT 静默 teardown
+			log.Printf("susheng: GetMessageW failed, shutting down message loop (ret=%d)", int32(ret))
 			break
+		}
+		if ret == 0 {
+			break // WM_QUIT
 		}
 		procTranslate.Call(uintptr(unsafe.Pointer(&msg)))
 		procDispatch.Call(uintptr(unsafe.Pointer(&msg)))
 	}
-	procUnhook.Call(current.hook)
+	if current.hook != 0 {
+		procUnhook.Call(current.hook)
+		current.hook = 0
+	}
 	current.removeTray()
 }
 
@@ -597,6 +616,10 @@ func (d *desktop) flushInsert() {
 
 func (d *desktop) copyImage(assetID string) bool {
 	path := d.store.AssetPath(assetID)
+	if path == "" {
+		// 非法 assetID（含路径穿越）：拒绝读取
+		return false
+	}
 	if _, err := os.Stat(path); err != nil {
 		return false
 	}
@@ -742,7 +765,10 @@ func (d *desktop) onTrayCommand(id int) {
 		procShowWindow.Call(d.settings, swShow)
 		procSetForeground.Call(d.settings)
 	case 207:
-		procUnhook.Call(d.hook)
+		if d.hook != 0 {
+			procUnhook.Call(d.hook)
+			d.hook = 0
+		}
 		d.removeTray()
 		procPostMessage.Call(d.hwnd, wmDestroy, 0, 0)
 	}
@@ -856,6 +882,7 @@ func copyFileDrop(path string) bool {
 	}
 	ptr, _, _ := procGlobalLock.Call(handle)
 	if ptr == 0 {
+		procGlobalFree.Call(handle)
 		return false
 	}
 	*(*uint32)(unsafe.Pointer(ptr)) = 20
@@ -865,10 +892,17 @@ func copyFileDrop(path string) bool {
 	}
 	procGlobalUnlock.Call(handle)
 	if r, _, _ := procOpenClipboard.Call(0); r == 0 {
+		// 剪贴板被其他应用占用：释放 handle 避免每次失败都泄漏 HGLOBAL
+		procGlobalFree.Call(handle)
 		return false
 	}
 	procEmptyClipboard.Call()
-	procSetClipboard.Call(cfHdrop, handle)
+	if ok, _, _ := procSetClipboard.Call(cfHdrop, handle); ok == 0 {
+		// SetClipboardData 失败：所有权未转移给剪贴板，必须释放 handle
+		procCloseClipboard.Call()
+		procGlobalFree.Call(handle)
+		return false
+	}
 	procCloseClipboard.Call()
 	return true
 }
@@ -887,8 +921,14 @@ func passwordFocused(fg uintptr) bool {
 	if style&esPassword != 0 {
 		return true
 	}
-	ch, _, _ := procSendMessage.Call(focus, 0x00D2, 0, 0)
-	return ch != 0
+	// 使用带超时的 SendMessageTimeoutW（SMTO_ABORTIFHUNG=0x0002, 200ms），避免目标窗口无响应时
+	// 低级键盘钩子超过 LowLevelHooksTimeout 被系统静默卸载；失败时 fail-safe 当作密码框处理（不拦截）
+	var result uintptr
+	ok, _, _ := procSendMessageTimeout.Call(focus, 0x00D2, 0, 0, 0x0002, 200, uintptr(unsafe.Pointer(&result)))
+	if ok == 0 {
+		return true
+	}
+	return result != 0
 }
 
 func caretRect(out *rect) bool {

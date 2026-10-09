@@ -72,15 +72,26 @@ function loadCountMap(file, t2s) {
     const simple = toSimplified(word, t2s)
     const n = Number(freq)
     const prev = map.get(simple)
-    if (prev == null || n > prev) map.set(simple, n)
+    if (prev === undefined || n > prev) map.set(simple, n)
   }
   return map
 }
 
 function loadCharPrior() {
   const file = join(dirname(fileURLToPath(import.meta.url)), 'char-prior.json')
-  if (!existsSync(file)) return {}
-  return JSON.parse(readFileSync(file, 'utf8'))
+  if (!existsSync(file)) {
+    console.warn(`[build-lexicon] 缺少 char-prior.json（${file}），同音字定序将被跳过`)
+    return {}
+  }
+  try {
+    const parsed = JSON.parse(readFileSync(file, 'utf8'))
+    if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed) || Object.keys(parsed).length === 0) {
+      console.warn('[build-lexicon] char-prior.json 为空或结构异常，同音字定序可能不生效')
+    }
+    return parsed
+  } catch (error) {
+    throw new Error(`char-prior.json 解析失败：${error.message}`)
+  }
 }
 
 function settleHomophones(best, t2s) {
@@ -183,6 +194,7 @@ function loadCharPinyin() {
 function pinyinOf(word, chars) {
   const syls = []
   for (const ch of word) {
+    // 刻意跳过非汉字：add() 会把标点从词中剔除，这里同步忽略标点才能音节数与去标点后的文本对齐。
     if (!/[\u3400-\u9fff]/.test(ch)) continue
     const syl = chars.get(ch)
     if (!syl) return null
@@ -204,7 +216,7 @@ export function collectEntries() {
     if (!p) return
     const key = `${text}\n${p}`
     const prev = best.get(key)
-    if (prev == null || freq > prev) best.set(key, freq)
+    if (prev === undefined || freq > prev) best.set(key, freq)
   }
 
   for (const line of syllableLines.split('\n')) {
@@ -248,14 +260,19 @@ export function collectEntries() {
     }
   }
 
+  // 词典源（dict.txt.big / THUOCL_*）共用的“繁转简 + 拼音回填”解析：优先用 large_pinyin 映射，回退到逐字拼。
+  function resolveWord(word) {
+    const simple = toSimplified(word, t2s)
+    return { simple, pinyin: phrasePinyin.get(word) || phrasePinyin.get(simple) || pinyinOf(simple, chars) }
+  }
+
   const dictFile = join(cache, 'dict.txt.big')
   if (existsSync(dictFile)) {
     for (const line of readFileSync(dictFile, 'utf8').split(/\n/)) {
       if (!line) continue
       const [word, freq] = line.split(/\s+/)
       if (!word) continue
-      const simple = toSimplified(word, t2s)
-      const pinyin = phrasePinyin.get(word) || phrasePinyin.get(simple) || pinyinOf(simple, chars)
+      const { simple, pinyin } = resolveWord(word)
       add(simple, pinyin, scaleFreq(freq))
     }
   }
@@ -270,8 +287,7 @@ export function collectEntries() {
         if (!line || line.startsWith('#')) continue
         const [word, freq] = line.trim().split(/\s+/)
         if (!word) continue
-        const simple = toSimplified(word, t2s)
-        const pinyin = phrasePinyin.get(word) || phrasePinyin.get(simple) || pinyinOf(simple, chars)
+        const { simple, pinyin } = resolveWord(word)
         const weight = scaleFreq(freq) + (idiom ? 40 : 0)
         add(simple, pinyin, Math.min(450, weight))
       }
@@ -312,7 +328,7 @@ export function collectEntries() {
   for (const [key, freq] of best) {
     const word = key.slice(0, key.indexOf('\n'))
     const pin = PIN.get(word)
-    if (pin != null && pin > freq) best.set(key, pin)
+    if (pin !== undefined && pin > freq) best.set(key, pin)
   }
 
   const entries = []
